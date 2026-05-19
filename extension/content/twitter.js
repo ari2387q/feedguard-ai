@@ -1,0 +1,271 @@
+/**
+ * FeedGuard AI — Twitter / X Content Script
+ * Plain JavaScript (no imports/TypeScript) — runs directly in the X page context.
+ *
+ * Features:
+ *  - Detects tweet article elements in the timeline
+ *  - Scores tweets locally for toxic/rage-bait heuristics
+ *  - Calls backend /api/analyze via background worker for AI-powered detection
+ *  - Flags toxic tweets with a visual warning banner
+ *  - MutationObserver to handle infinite scroll and dynamic content
+ */
+
+(function () {
+  'use strict';
+
+  // ─── State ──────────────────────────────────────────────────────────────────
+
+  /** @type {{ clickbaitFilter: boolean, doomscrollTimer: boolean, aiSummarize: boolean, toxicFilter: boolean, timeLimit: number }} */
+  let settings = {
+    clickbaitFilter: true,
+    doomscrollTimer: true,
+    aiSummarize: true,
+    toxicFilter: true,
+    timeLimit: 30,
+  };
+
+  /** @type {WeakSet<Element>} Tracks already-processed tweet elements */
+  const processedTweets = new WeakSet();
+
+  /** @type {Map<string, { toxic: boolean, ragebait: boolean, clickbait: boolean, reason: string }>} */
+  const analysisCache = new Map();
+
+  // ─── Local Heuristic Scoring ──────────────────────────────────────────────────
+
+  const TOXIC_KEYWORDS = [
+    'idiot', 'stupid', 'moron', 'pathetic', 'disgusting', 'trash', 'garbage',
+    'hate', 'kill yourself', 'kys', 'die', 'worthless', 'loser', 'failure',
+    'shut up', 'clown', 'brain dead', 'degenerate', 'cringe',
+  ];
+
+  const RAGEBAIT_KEYWORDS = [
+    'this is why', 'unpopular opinion', 'change my mind', 'fight me',
+    'they will never', 'can\'t believe', 'outrageous', 'shocking truth',
+    'you need to hear this', 'wake up', 'nobody talks about',
+    'everyone is ignoring', 'they\'re hiding', 'the media won\'t show',
+  ];
+
+  /**
+   * Performs a fast heuristic check on tweet text before making an API call.
+   * Returns true if the text is likely toxic/rage-bait.
+   * @param {string} text
+   * @returns {{ likelyToxic: boolean, likelyRagebait: boolean }}
+   */
+  function quickHeuristicCheck(text) {
+    if (!text) return { likelyToxic: false, likelyRagebait: false };
+    const lower = text.toLowerCase();
+
+    const likelyToxic = TOXIC_KEYWORDS.some((kw) => lower.includes(kw));
+    const likelyRagebait = RAGEBAIT_KEYWORDS.some((kw) => lower.includes(kw));
+
+    return { likelyToxic, likelyRagebait };
+  }
+
+  // ─── Badge Injection ─────────────────────────────────────────────────────────
+
+  /**
+   * Injects a warning banner above a tweet article element.
+   * @param {Element} article - The tweet article element
+   * @param {{ toxic: boolean, ragebait: boolean, reason: string }} result
+   */
+  function injectWarningBadge(article, result) {
+    if (article.querySelector('.fg-tweet-warning')) return;
+
+    const { toxic, ragebait, reason } = result;
+    const isToxic = toxic;
+    const isRage = ragebait;
+
+    const banner = document.createElement('div');
+    banner.className = 'fg-tweet-warning';
+    banner.style.cssText = `
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      border-left: 3px solid ${isToxic ? '#ef4444' : '#f59e0b'};
+      background: ${isToxic ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)'};
+      margin: 4px 12px 4px 12px;
+      border-radius: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    `;
+
+    const icon = isToxic ? '☣️' : '⚠️';
+    const label = isToxic
+      ? 'Toxic Content Detected'
+      : isRage
+      ? 'Rage Bait Detected'
+      : 'Potentially Harmful';
+
+    banner.innerHTML = `
+      <span style="font-size: 18px; flex-shrink: 0;">${icon}</span>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-weight: 700; font-size: 13px; color: ${isToxic ? '#fca5a5' : '#fcd34d'}; margin-bottom: 3px;">
+          🛡 FeedGuard — ${label}
+        </div>
+        <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">${reason || 'This content may be harmful or designed to provoke anger.'}</div>
+        <button class="fg-reveal-btn" style="
+          margin-top: 6px; background: transparent; border: 1px solid #334155;
+          color: #64748b; font-size: 11px; padding: 2px 10px; border-radius: 20px;
+          cursor: pointer; font-family: inherit;
+        ">Show tweet anyway</button>
+      </div>
+    `;
+
+    // Insert the banner before the tweet's main content
+    const tweetContent = article.querySelector('[data-testid="tweetText"]');
+    if (tweetContent) {
+      tweetContent.style.filter = 'blur(4px)';
+      tweetContent.style.transition = 'filter 0.3s ease';
+    }
+
+    article.insertBefore(banner, article.firstChild);
+
+    banner.querySelector('.fg-reveal-btn').addEventListener('click', () => {
+      banner.remove();
+      if (tweetContent) tweetContent.style.filter = 'none';
+    });
+  }
+
+  // ─── Tweet Analysis ───────────────────────────────────────────────────────────
+
+  /**
+   * Analyzes a single tweet element for toxic/rage-bait content.
+   * Uses a local heuristic first; escalates to AI analysis if needed.
+   * @param {Element} article - Tweet article DOM element
+   */
+  async function analyzeTweet(article) {
+    if (processedTweets.has(article)) return;
+    processedTweets.add(article);
+
+    const textEl = article.querySelector('[data-testid="tweetText"]');
+    if (!textEl) return;
+
+    const text = textEl.textContent.trim();
+    if (!text || text.length < 20) return;
+
+    // Cache check
+    if (analysisCache.has(text)) {
+      const cached = analysisCache.get(text);
+      if (cached.toxic || cached.ragebait) {
+        injectWarningBadge(article, cached);
+      }
+      return;
+    }
+
+    // Quick local heuristic pass to avoid unnecessary API calls
+    const { likelyToxic, likelyRagebait } = quickHeuristicCheck(text);
+
+    if (!likelyToxic && !likelyRagebait) {
+      // Mark as clean without calling AI
+      analysisCache.set(text, { toxic: false, ragebait: false, clickbait: false, reason: '' });
+      return;
+    }
+
+    // Escalate to AI analysis via background worker
+    try {
+      const result = await chrome.runtime.sendMessage({
+        type: 'ANALYZE_TWEET',
+        payload: { text },
+      });
+
+      if (!result || result.error) {
+        // Fallback: use heuristic result
+        if (likelyToxic || likelyRagebait) {
+          const fallback = {
+            toxic: likelyToxic,
+            ragebait: likelyRagebait,
+            clickbait: false,
+            reason: 'Heuristic detection (AI unavailable)',
+          };
+          analysisCache.set(text, fallback);
+          injectWarningBadge(article, fallback);
+          updateToxicStats();
+        }
+        return;
+      }
+
+      analysisCache.set(text, result);
+
+      if (result.toxic || result.ragebait) {
+        injectWarningBadge(article, result);
+        updateToxicStats();
+      }
+    } catch (err) {
+      console.warn('[FeedGuard Twitter] Analysis error:', err);
+    }
+  }
+
+  /**
+   * Sends a toxicBlocked increment to the background service worker.
+   */
+  function updateToxicStats() {
+    chrome.runtime.sendMessage({
+      type: 'UPDATE_STATS',
+      payload: { toxicBlocked: 1 },
+    });
+  }
+
+  // ─── Feed Processing ──────────────────────────────────────────────────────────
+
+  /**
+   * Scans the current DOM for unprocessed tweet articles and analyzes them.
+   */
+  function processTweets() {
+    if (!settings.toxicFilter) return;
+
+    const articles = document.querySelectorAll('article[data-testid="tweet"]');
+    articles.forEach((article) => {
+      analyzeTweet(article);
+    });
+  }
+
+  // ─── MutationObserver ─────────────────────────────────────────────────────────
+
+  /**
+   * Watches for new tweets injected into the DOM (infinite scroll, navigation).
+   */
+  function startObserver() {
+    const observer = new MutationObserver((mutations) => {
+      let hasNewNodes = false;
+      for (const m of mutations) {
+        if (m.addedNodes.length > 0) {
+          hasNewNodes = true;
+          break;
+        }
+      }
+      if (hasNewNodes) {
+        // Debounce to avoid hammering on rapid mutations
+        requestAnimationFrame(processTweets);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // ─── Bootstrap ───────────────────────────────────────────────────────────────
+
+  /**
+   * Initializes the Twitter content script.
+   */
+  async function init() {
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+      if (response && response.settings) {
+        settings = response.settings;
+      }
+    } catch (err) {
+      console.warn('[FeedGuard Twitter] Could not load settings:', err);
+    }
+
+    processTweets();
+    startObserver();
+
+    console.log('[FeedGuard AI] Twitter/X content script active. Settings:', settings);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

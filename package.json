@@ -1,0 +1,10 @@
+{
+  "name": "feedguard-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "popup-src",
+    "backend",
+    "dashboard"
+  ]
+}

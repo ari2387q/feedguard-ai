@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./popup-src" },
+    { "path": "./backend" },
+    { "path": "./dashboard" }
+  ]
+}
