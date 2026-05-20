@@ -1,19 +1,7 @@
-/**
- * FeedGuard AI — YouTube Content Script
- * Plain JavaScript (no imports/TypeScript) — runs directly in the YouTube page context.
- *
- * Features:
- *  - Doomscroll timer with visual overlay when limit is exceeded
- *  - Clickbait scorer based on title heuristics (ALL CAPS, keywords, punctuation)
- *  - Clickbait badge on video cards
- *  - On-hover tooltip calling backend /api/summarize via background worker
- *  - MutationObserver to handle YouTube's dynamic SPA navigation
- */
+
 
 (function () {
   'use strict';
-
-  // ─── State ──────────────────────────────────────────────────────────────────
 
   /** @type {{ clickbaitFilter: boolean, doomscrollTimer: boolean, aiSummarize: boolean, toxicFilter: boolean, timeLimit: number }} */
   let settings = {
@@ -452,3 +440,4 @@
     init();
   }
 })();
+
