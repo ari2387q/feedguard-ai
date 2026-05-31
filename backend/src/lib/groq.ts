@@ -110,23 +110,32 @@ ${text}
     max_tokens: 200,
   });
 
+  // Extract the raw JSON string from the API response
   const raw = chatCompletion.choices[0]?.message?.content?.trim() || '';
 
+  // Try to convert JSON string into a JavaScript object
   try {
+    // JSON.parse() converts: '{"toxic":true}' → { toxic: true }
     const parsed = JSON.parse(raw) as AnalysisResult;
-    return {
-      toxic: Boolean(parsed.toxic),
-      ragebait: Boolean(parsed.ragebait),
-      clickbait: Boolean(parsed.clickbait),
-      reason: typeof parsed.reason === 'string' ? parsed.reason : '',
-    };
-  } catch {
-    console.error('[Groq] Failed to parse analysis JSON:', raw);
+    // Safely extract each field with validation
+    const toxic = Boolean(parsed.toxic);              // Ensure true/false
+    const ragebait = Boolean(parsed.ragebait);        // Ensure true/false
+    const clickbait = Boolean(parsed.clickbait);      // Ensure true/false
+    const reason = typeof parsed.reason === 'string' ? parsed.reason : 'No reason provided';
+
+    return { toxic, ragebait, clickbait, reason };
+
+  } catch (error) {
+    // If JSON.parse() fails, the AI response wasn't valid JSON
+    console.error('[Groq] Could not parse AI response as JSON. Raw:', raw);
+    console.error('[Groq] Error details:', error);
+
+    // Return safe default (treat as clean content)
     return {
       toxic: false,
       ragebait: false,
       clickbait: false,
-      reason: 'Analysis parsing failed.',
+      reason: 'Could not analyze content (parsing error)',
     };
   }
 }

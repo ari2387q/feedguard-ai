@@ -13,13 +13,6 @@ export interface UpsertPayload {
   timeSpent?: number;
 }
 
-const DEFAULT_STATS = {
-  videosFiltered: 0,
-  timeSpent: 0,
-  toxicBlocked: 0,
-  date: new Date().toISOString().split('T')[0],
-};
-
 /**
  * Service layer for user operations.
  * Handles business logic for creating, updating, and retrieving user stats.
