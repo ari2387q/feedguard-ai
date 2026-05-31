@@ -49,5 +49,8 @@
       "resources": ["popup/*", "icons/*"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http://localhost:3001 https://fonts.googleapis.com https://fonts.gstatic.com;"
+  }
 }

@@ -130,6 +130,19 @@ async function handleUpdateStats(payload, sendResponse) {
     };
 
     await chrome.storage.local.set({ stats: updated });
+
+    // Sync summary stats to the backend so the dashboard matches extension activity.
+    const syncSuccess = await postStatsToBackend({
+      userId: 'demo',
+      videosFiltered: payload.videosFiltered || 0,
+      toxicBlocked: payload.toxicBlocked || 0,
+      timeSpent: payload.timeSpent || 0,
+    });
+
+    if (syncSuccess) {
+      await chrome.storage.local.set({ syncedStats: updated });
+    }
+
     sendResponse({ success: true, stats: updated });
   } catch (err) {
     console.error('[FeedGuard] UPDATE_STATS error:', err);
@@ -148,6 +161,51 @@ async function handleGetStats(sendResponse) {
   } catch (err) {
     console.error('[FeedGuard] GET_STATS error:', err);
     sendResponse({ error: err.message });
+  }
+}
+
+async function postStatsToBackend(payload) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unable to read body');
+      throw new Error(`Backend sync failed: ${response.status} ${errorText}`);
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[FeedGuard] postStatsToBackend error:', err);
+    return false;
+  }
+}
+
+async function syncLocalStatsToBackend() {
+  try {
+    const { stats, syncedStats } = await chrome.storage.local.get(['stats', 'syncedStats']);
+    if (!stats) return;
+
+    const last = syncedStats || { videosFiltered: 0, toxicBlocked: 0, timeSpent: 0, date: stats.date };
+    const delta = {
+      userId: 'demo',
+      videosFiltered: Math.max(0, stats.videosFiltered - (last.videosFiltered || 0)),
+      toxicBlocked: Math.max(0, stats.toxicBlocked - (last.toxicBlocked || 0)),
+      timeSpent: Math.max(0, stats.timeSpent - (last.timeSpent || 0)),
+    };
+
+    const hasDelta = delta.videosFiltered || delta.toxicBlocked || delta.timeSpent;
+    if (!hasDelta) return;
+
+    const success = await postStatsToBackend(delta);
+    if (success) {
+      await chrome.storage.local.set({ syncedStats: stats });
+    }
+  } catch (err) {
+    console.warn('[FeedGuard] syncLocalStatsToBackend error:', err);
   }
 }
 
@@ -190,13 +248,18 @@ async function handleAnalyzeTweet(payload, sendResponse) {
     });
 
     if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
+      const errorBody = await response.text().catch(() => 'Unable to read body');
+      throw new Error(`Backend returned ${response.status}: ${errorBody}`);
     }
 
     const data = await response.json();
     sendResponse(data);
   } catch (err) {
     console.error('[FeedGuard] ANALYZE_TWEET error:', err);
-    sendResponse({ error: err.message });
+    sendResponse({ error: err instanceof Error ? err.message : String(err) });
   }
 }
+
+syncLocalStatsToBackend().catch((err) => {
+  console.warn('[FeedGuard] Initial stats sync error:', err);
+});

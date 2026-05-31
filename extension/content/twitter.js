@@ -23,15 +23,39 @@
 
   const TOXIC_KEYWORDS = [
     'idiot', 'stupid', 'moron', 'pathetic', 'disgusting', 'trash', 'garbage',
-    'hate', 'kill yourself', 'kys', 'die', 'worthless', 'loser', 'failure',
-    'shut up', 'clown', 'brain dead', 'degenerate', 'cringe',
+   'kill yourself', 'kys', 'die', 'worthless',
+  'clown', 'brain dead', 'degenerate',
   ];
 
   const RAGEBAIT_KEYWORDS = [
-    'this is why', 'unpopular opinion', 'change my mind', 'fight me',
-    'they will never', 'can\'t believe', 'outrageous', 'shocking truth',
-    'you need to hear this', 'wake up', 'nobody talks about',
-    'everyone is ignoring', 'they\'re hiding', 'the media won\'t show',
+    'this is why',
+    'unpopular opinion',
+    'change my mind',
+    'fight me',
+    'they will never',
+    'can\'t believe',
+    'outrageous',
+    'shocking truth',
+    'you need to hear this',
+    'wake up',
+    'nobody talks about',
+    'everyone is ignoring',
+    'they\'re hiding',
+    'the media won\'t show',
+    'you won\'t believe',
+    'you won\'t believe what',
+    'must see',
+    'must read',
+    'don\'t miss',
+    'wait until you see',
+    'this will blow your mind',
+    'this is why i',
+    'no one is talking about',
+    'the truth about',
+    'you need to know',
+    'you need to hear',
+    'here\'s why',
+    'bet you didn\'t know',
   ];
 
   /**

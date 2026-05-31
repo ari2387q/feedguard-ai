@@ -1,6 +1,7 @@
 import React from 'react';
 import StatCard from './components/StatCard';
 import UsageChart from './components/UsageChart';
+import RecentActivity from './components/RecentActivity';
 
 /**
  * Fetches today’s aggregated stats from the backend.
@@ -14,22 +15,27 @@ async function fetchStats() {
     if (!res.ok) throw new Error('Backend response not OK');
     const data = await res.json();
     
-    const stats = data?.user?.dailyStats?.[0] ?? {
+    // Get today's stats from dailyStats array
+    const today = new Date().toISOString().split('T')[0];
+    const todayStats = data?.user?.dailyStats?.find((stat: any) => stat.date === today) ?? {
       timeSpent: 0,
       filtered: 0,
     };
     
     return {
-      timeSaved: formatDuration(stats.timeSpent),
-      videosFiltered: stats.filtered,
+      timeSaved: formatDuration(todayStats.timeSpent),
+      videosFiltered: todayStats.filtered,
       toxicBlocked: data?.user?.toxicBlocked ?? 0,
+      dailyStats: data?.user?.dailyStats ?? [],
     };
   } catch (err) {
-    // Return mock data if backend isn't ready/reachable yet
+    console.error('[Dashboard] Failed to fetch stats:', err);
+    // Return empty data if backend isn't available
     return {
-      timeSaved: '2h 15m',
-      videosFiltered: 47,
-      toxicBlocked: 12,
+      timeSaved: '0m',
+      videosFiltered: 0,
+      toxicBlocked: 0,
+      dailyStats: [],
     };
   }
 }
@@ -86,24 +92,7 @@ export default async function Home() {
         {/* Recent Activity Feed */}
         <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-white mb-6 font-sans">Recent Activity</h2>
-          <div className="space-y-5">
-            {[
-              { id: 1, action: 'Blocked clickbait video', time: '10 mins ago', icon: '🚨' },
-              { id: 2, action: 'Flagged toxic tweet', time: '1 hour ago', icon: '☣️' },
-              { id: 3, action: 'Hit Doomscroll limit', time: '3 hours ago', icon: '🛡️' },
-              { id: 4, action: 'Generated AI Summary', time: '5 hours ago', icon: '🤖' },
-            ].map((item) => (
-              <div key={item.id} className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-surface-2 rounded-full flex items-center justify-center text-sm border border-border">
-                  {item.icon}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-200 font-sans">{item.action}</p>
-                  <p className="text-xs text-slate-500 mt-0.5 font-sans">{item.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <RecentActivity />
         </div>
       </div>
     </div>

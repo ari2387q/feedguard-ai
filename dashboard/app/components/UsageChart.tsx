@@ -11,26 +11,79 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const data = [
-  { day: 'Mon', timeSpent: 120, filtered: 12 },
-  { day: 'Tue', timeSpent: 90, filtered: 18 },
-  { day: 'Wed', timeSpent: 150, filtered: 25 },
-  { day: 'Thu', timeSpent: 80, filtered: 8 },
-  { day: 'Fri', timeSpent: 110, filtered: 15 },
-  { day: 'Sat', timeSpent: 210, filtered: 40 },
-  { day: 'Sun', timeSpent: 180, filtered: 32 },
-];
+interface ChartData {
+  day: string;
+  timeSpent: number;
+  filtered: number;
+}
 
 export default function UsageChart() {
   // Prevent hydration mismatch by only rendering chart on client
   const [mounted, setMounted] = useState(false);
+  const [data, setData] = useState<ChartData[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  /**
+   * Fetch user stats and transform to last 7 days of data
+   */
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/user?userId=demo');
+        if (!response.ok) throw new Error('Failed to fetch stats');
+        
+        const result = await response.json();
+        const dailyStats = result.user?.dailyStats || [];
+        
+        // Convert dailyStats to chart format with day names
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const chartData = dailyStats
+          .slice(-7) // Last 7 days
+          .map((stat: any) => {
+            const date = new Date(stat.date);
+            const day = dayNames[date.getDay()];
+            return {
+              day,
+              timeSpent: Math.floor(stat.timeSpent / 60), // Convert seconds to minutes
+              filtered: stat.filtered,
+            };
+          });
+        
+        // Pad with empty days if less than 7
+        while (chartData.length < 7) {
+          const lastDate = chartData.length > 0 
+            ? new Date(chartData[chartData.length - 1].day)
+            : new Date();
+          const newDate = new Date(lastDate.getTime() - (7 - chartData.length) * 24 * 60 * 60 * 1000);
+          const dayName = dayNames[newDate.getDay()];
+          chartData.unshift({ day: dayName, timeSpent: 0, filtered: 0 });
+        }
+        
+        setData(chartData.length > 0 ? chartData : getDefaultChartData());
+      } catch (err) {
+        console.error('[UsageChart] Failed to fetch data:', err);
+        setData(getDefaultChartData());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChartData();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchChartData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!mounted) {
     return <div className="w-full h-full flex items-center justify-center text-slate-500">Loading chart...</div>;
+  }
+
+  if (loading) {
+    return <div className="w-full h-full flex items-center justify-center text-slate-500">Loading data...</div>;
   }
 
   return (
@@ -78,4 +131,20 @@ export default function UsageChart() {
       </BarChart>
     </ResponsiveContainer>
   );
+}
+
+/**
+ * Returns default chart data (empty week) when backend is unavailable
+ */
+function getDefaultChartData(): ChartData[] {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const today = new Date();
+  return Array.from({ length: 7 }).map((_, i) => {
+    const date = new Date(today.getTime() - (6 - i) * 24 * 60 * 60 * 1000);
+    return {
+      day: dayNames[date.getDay()],
+      timeSpent: 0,
+      filtered: 0,
+    };
+  });
 }

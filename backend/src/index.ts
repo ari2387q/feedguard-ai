@@ -20,6 +20,11 @@ app.use('/api/summarize', summarizeRouter);
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/user', userRouter);
 
+/** Root route for quick browser checks */
+app.get('/', (_req, res) => {
+  res.json({ status: 'FeedGuard backend', api: '/api/health' });
+});
+
 /** Health-check endpoint */
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
