@@ -1,5 +1,5 @@
 import express from 'express';
-import cors from 'cors';
+import { corsMiddleware } from './middleware/corsconfig';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import summarizeRouter from './routes/summarize';
@@ -11,20 +11,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ─── Middleware ────────────────────────────────────────────────────────────────
-
-app.use(
-  cors({
-    origin: [
-      'chrome-extension://*',
-      'http://localhost:3000', // Next.js dashboard
-      'http://localhost:5173', // Vite dev server
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,
-  })
-);
-
+app.use(corsMiddleware);
 app.use(express.json({ limit: '1mb' }));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────

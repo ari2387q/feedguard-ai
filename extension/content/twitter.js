@@ -1,14 +1,3 @@
-/**
- * FeedGuard AI — Twitter / X Content Script
- * Plain JavaScript (no imports/TypeScript) — runs directly in the X page context.
- *
- * Features:
- *  - Detects tweet article elements in the timeline
- *  - Scores tweets locally for toxic/rage-bait heuristics
- *  - Calls backend /api/analyze via background worker for AI-powered detection
- *  - Flags toxic tweets with a visual warning banner
- *  - MutationObserver to handle infinite scroll and dynamic content
- */
 
 (function () {
   'use strict';
