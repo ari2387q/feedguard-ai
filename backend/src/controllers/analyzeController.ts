@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { analyzeService } from '../services/analyzeService';
+import { analyzeTweet } from '../services/analyzeService';
 
 export interface AnalyzeRequestBody {
   text: string;
@@ -25,14 +25,12 @@ export const analyzeController = {
       }
 
       if (text.length > 5000) {
-        res
-          .status(400)
-          .json({ error: 'Text exceeds maximum length of 5000 characters.' });
+        res.status(400).json({ error: 'Text exceeds maximum length of 5000 characters.' });
         return;
       }
 
       // Delegate to service
-      const result = await analyzeService.analyzeTweet(text);
+      const result = await analyzeTweet(text);
       res.json(result);
     } catch (err) {
       console.error('[analyzeController] Error:', err);

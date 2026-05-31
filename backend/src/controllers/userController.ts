@@ -19,8 +19,7 @@ export const userController = {
     res: Response
   ): Promise<void> => {
     try {
-      const { userId, videosFiltered = 0, toxicBlocked = 0, timeSpent = 0 } =
-        req.body;
+      const { userId, videosFiltered = 0, toxicBlocked = 0, timeSpent = 0 } =req.body;
 
       // Validation
       if (!userId || typeof userId !== 'string') {
