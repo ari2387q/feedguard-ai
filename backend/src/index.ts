@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import summarizeRouter from './routes/summarize';
 import analyzeRouter from './routes/analyze';
 import userRouter from './routes/user';
+import spamRouter from './routes/spam';
 
 dotenv.config();
 
@@ -14,12 +15,10 @@ const PORT = process.env.PORT || 3001;
 app.use(corsMiddleware);
 app.use(express.json({ limit: '1mb' }));
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
-
 app.use('/api/summarize', summarizeRouter);
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/user', userRouter);
-
+app.use('/api/spam', spamRouter);
 /** Root route for quick browser checks */
 app.get('/', (_req, res) => {
   res.json({ status: 'FeedGuard backend', api: '/api/health' });
@@ -30,12 +29,6 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── Database & Server Start ──────────────────────────────────────────────────
-
-/**
- * Connects to MongoDB and starts the Express server.
- * Falls back to running without a database if the URI is missing.
- */
 async function start(): Promise<void> {
   const mongoUri = process.env.MONGODB_URI;
 

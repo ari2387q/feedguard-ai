@@ -138,14 +138,14 @@
       if (tweetContent) tweetContent.style.filter = 'none';
     });
   }
-  async function checkSpam(text) {
+  // NEW - goes through background.js
+async function checkSpam(text) {
     try {
-        const response = await fetch('http://127.0.0.1:8000/predict', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text }),
+        const result = await chrome.runtime.sendMessage({
+            type: 'CHECK_SPAM',
+            payload: { text }
         });
-        return await response.json();
+        return result;
     } catch (err) {
         console.warn('[FeedGuard] Spam check failed:', err);
         return null;

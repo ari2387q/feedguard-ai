@@ -86,6 +86,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'ANALYZE_TWEET':
       handleAnalyzeTweet(message.payload, sendResponse);
       break;
+    case 'CHECK_SPAM':
+    handleCheckSpam(message.payload, sendResponse);
+    break;
 
     default:
       sendResponse({ error: 'Unknown message type' });
@@ -233,7 +236,20 @@ async function handleSummarize(payload, sendResponse) {
     sendResponse({ error: err.message });
   }
 }
-
+async function handleCheckSpam(payload, sendResponse) {
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/spam`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: payload.text }),
+        });
+        const data = await response.json();
+        sendResponse(data);
+    } catch (err) {
+        console.error('[FeedGuard] CHECK_SPAM error:', err);
+        sendResponse(null);
+    }
+}
 /**
  * Proxies a tweet analysis request to the backend /api/analyze endpoint.
  * @param {{ text: string }} payload

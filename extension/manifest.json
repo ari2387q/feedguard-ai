@@ -43,7 +43,8 @@
     "https://x.com/*",
     "https://twitter.com/*",
     "http://localhost:3001/*",
-    "http://127.0.0.1:8000/*"
+    "http://127.0.0.1:8000/*",
+     "http://localhost:8000/*"
 ],
   "web_accessible_resources": [
     {
@@ -52,6 +53,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http://localhost:3001 https://fonts.googleapis.com https://fonts.gstatic.com;"
-  }
-}
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http://localhost:3001 http://localhost:8000 http://127.0.0.1:8000 https://fonts.googleapis.com https://fonts.gstatic.com;"
+}  }
+
