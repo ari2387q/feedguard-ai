@@ -138,7 +138,19 @@
       if (tweetContent) tweetContent.style.filter = 'none';
     });
   }
-
+  async function checkSpam(text) {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text }),
+        });
+        return await response.json();
+    } catch (err) {
+        console.warn('[FeedGuard] Spam check failed:', err);
+        return null;
+    }
+}
   // ─── Tweet Analysis ───────────────────────────────────────────────────────────
 
   /**
@@ -167,7 +179,19 @@
 
     // Quick local heuristic pass to avoid unnecessary API calls
     const { likelyToxic, likelyRagebait } = quickHeuristicCheck(text);
-
+    const spamResult = await checkSpam(text);
+    if (spamResult && spamResult.label === 'SPAM') {
+    const spamData = {
+        toxic: false,
+        ragebait: false,
+        clickbait: false,
+        reason: `ML spam detector flagged this (${spamResult.confidence}% confident)`,
+    };
+    analysisCache.set(text, spamData);
+    injectWarningBadge(article, spamData);
+    updateToxicStats();
+    return;
+}
     if (!likelyToxic && !likelyRagebait) {
       // Mark as clean without calling AI
       analysisCache.set(text, { toxic: false, ragebait: false, clickbait: false, reason: '' });
