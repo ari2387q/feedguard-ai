@@ -264,6 +264,7 @@ async function checkSpam(text) {
   };
 }
   function startObserver() {
+      const debouncedProcess = debounce(processTweets, 150);
     const observer = new MutationObserver((mutations) => {
       let hasNewNodes = false;
       for (const m of mutations) {
