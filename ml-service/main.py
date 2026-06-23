@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import joblib
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
@@ -17,7 +17,7 @@ except FileNotFoundError as e:
     raise RuntimeError(f"model file is not foun:{e} run teh nb first")
 
 class Message(BaseModel):
-    text: str
+    text: str=Field(..., min_length=1, max_length=2000)
 
 @app.get("/")
 def home():
