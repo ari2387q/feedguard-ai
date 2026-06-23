@@ -92,8 +92,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleAnalyzeTweet(message.payload, sendResponse);
       break;
     case 'CHECK_SPAM':
-    handleCheckSpam(message.payload, sendResponse);
-    break;
+      handleCheckSpam(message.payload, sendResponse);
+      break;
+    case 'CHECK_TOXIC':
+      handleCheckToxic(message.payload, sendResponse);
+      break;
+
 
     default:
       sendResponse({ error: 'Unknown message type' });
@@ -254,6 +258,20 @@ async function handleCheckSpam(payload, sendResponse) {
         console.error('[FeedGuard] CHECK_SPAM error:', err);
         sendResponse(null);
     }
+}
+async function handleCheckToxic(payload, sendResponse) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/toxic`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: payload.text }),
+    });
+    const data = await response.json();
+    sendResponse(data);
+  } catch (err) {
+    console.error('[FeedGuard] CHECK_TOXIC error:', err);
+    sendResponse(null);
+  }
 }
 /**
  * Proxies a tweet analysis request to the backend /api/analyze endpoint.

@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  // ─── State ──────────────────────────────────────────────────────────────────
+  // State
 
   /** @type {{ clickbaitFilter: boolean, doomscrollTimer: boolean, aiSummarize: boolean, toxicFilter: boolean, timeLimit: number }} */
   let settings = {
@@ -19,7 +19,7 @@
   /** @type {Map<string, { toxic: boolean, ragebait: boolean, clickbait: boolean, reason: string }>} */
   const analysisCache = new Map();
 
-  // ─── Local Heuristic Scoring ──────────────────────────────────────────────────
+  // Local Heuristic Scoring
 
   const TOXIC_KEYWORDS = [
     'idiot', 'stupid', 'moron', 'pathetic', 'disgusting', 'trash', 'garbage',
@@ -74,8 +74,7 @@
     return { likelyToxic, likelyRagebait };
   }
 
-  // ─── Badge Injection ─────────────────────────────────────────────────────────
-
+  //Badge Injection
   /**
    * Injects a warning banner above a tweet article element.
    * @param {Element} article - The tweet article element
@@ -151,8 +150,20 @@ async function checkSpam(text) {
         return null;
     }
 }
-  // ─── Tweet Analysis ───────────────────────────────────────────────────────────
-
+//To check the toxicity
+async function checkToxic(text) {
+  try {
+    const result = await chrome.runtime.sendMessage({
+      type: 'CHECK_TOXIC',
+      payload: { text }
+    });
+    return result;
+  } catch (err) {
+    console.warn('[FeedGuard] Toxic check failed:', err);
+    return null;
+  }
+}
+  // Tweet Analysis
   /**
    * Analyzes a single tweet element for toxic/rage-bait content.
    * Uses a local heuristic first; escalates to AI analysis if needed.
@@ -193,10 +204,26 @@ async function checkSpam(text) {
     return;
 }
     if (!likelyToxic && !likelyRagebait) {
-      // Mark as clean without calling AI
-      analysisCache.set(text, { toxic: false, ragebait: false, clickbait: false, reason: '' });
-      return;
-    }
+  analysisCache.set(text, { toxic: false, ragebait: false, clickbait: false, reason: '' });
+  return;
+}
+
+// ML toxic check before escalating to Groq
+const toxicResult = await checkToxic(text);
+if (toxicResult && toxicResult.label === 'TOXIC') {
+  const toxicData = {
+    toxic: true,
+    ragebait: false,
+    clickbait: false,
+    reason: `ML toxicity model flagged this (${toxicResult.confidence}% confident)`,
+  };
+  analysisCache.set(text, toxicData);
+  injectWarningBadge(article, toxicData);
+  updateToxicStats();
+  return;
+}
+
+// Escalate to Groq LLM only if both ML models say clean
 
     // Escalate to AI analysis via background worker
     try {
@@ -242,7 +269,7 @@ async function checkSpam(text) {
     });
   }
 
-  // ─── Feed Processing ──────────────────────────────────────────────────────────
+  // Feed Processing 
 
   /**
    * Scans the current DOM for unprocessed tweet articles and analyzes them.
@@ -282,7 +309,7 @@ async function checkSpam(text) {
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // ─── Bootstrap ───────────────────────────────────────────────────────────────
+  //Bootstrap
 
   /**
    * Initializes the Twitter content script.

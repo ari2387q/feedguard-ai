@@ -6,7 +6,7 @@ import summarizeRouter from './routes/summarize';
 import analyzeRouter from './routes/analyze';
 import userRouter from './routes/user';
 import spamRouter from './routes/spam';
-
+import toxicRouter from './routes/toxic';
 dotenv.config();
 
 const app = express();
@@ -19,6 +19,7 @@ app.use('/api/summarize', summarizeRouter);
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/user', userRouter);
 app.use('/api/spam', spamRouter);
+app.use('/api/toxic', toxicRouter);
 /** Root route for quick browser checks */
 app.get('/', (_req, res) => {
   res.json({ status: 'FeedGuard backend', api: '/api/health' });
