@@ -29,6 +29,10 @@ const DEFAULT_STATS = {
  * Seeds chrome.storage.sync with default settings if not already present.
  */
 chrome.runtime.onInstalled.addListener(async () => {
+  const { userId } = await chrome.storage.local.get('userId');
+  if (!userId) {
+      await chrome.storage.local.set({ userId: crypto.randomUUID() });
+  }
   const existing = await chrome.storage.sync.get('settings');
   if (!existing.settings) {
     await chrome.storage.sync.set({ settings: DEFAULT_SETTINGS });
@@ -40,6 +44,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     await chrome.storage.local.set({ stats: DEFAULT_STATS });
     console.log('[FeedGuard] Default stats initialized.');
   }
+
 });
 
 // ─── Alarm for daily stats reset ─────────────────────────────────────────────
@@ -136,7 +141,7 @@ async function handleUpdateStats(payload, sendResponse) {
 
     // Sync summary stats to the backend so the dashboard matches extension activity.
     const syncSuccess = await postStatsToBackend({
-      userId: 'demo',
+      userId: await getUserId(),
       videosFiltered: payload.videosFiltered || 0,
       toxicBlocked: payload.toxicBlocked || 0,
       timeSpent: payload.timeSpent || 0,
@@ -194,7 +199,7 @@ async function syncLocalStatsToBackend() {
 
     const last = syncedStats || { videosFiltered: 0, toxicBlocked: 0, timeSpent: 0, date: stats.date };
     const delta = {
-      userId: 'demo',
+      userId: await getUserId(),
       videosFiltered: Math.max(0, stats.videosFiltered - (last.videosFiltered || 0)),
       toxicBlocked: Math.max(0, stats.toxicBlocked - (last.toxicBlocked || 0)),
       timeSpent: Math.max(0, stats.timeSpent - (last.timeSpent || 0)),
@@ -279,3 +284,12 @@ async function handleAnalyzeTweet(payload, sendResponse) {
 syncLocalStatsToBackend().catch((err) => {
   console.warn('[FeedGuard] Initial stats sync error:', err);
 });
+
+async function getUserId(){
+  const {userId}= await chrome.storage.local.get('userId')
+  if (userId) return userId;
+  const newId=crypto.randomUUID();
+  await chrome.storage.local.set({userId:newId})
+  return newId;
+}
+
