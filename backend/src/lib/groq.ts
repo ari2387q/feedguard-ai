@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk';
 
 /** The Groq model used for all AI inference */
-const MODEL = 'groq-1.1-mini';
+const MODEL = 'llama-3.1-8b-instant';
 
 /** Lazy-initialized Groq client */
 let client: Groq | null = null;
