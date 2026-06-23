@@ -253,14 +253,16 @@ async function checkSpam(text) {
     const articles = document.querySelectorAll('article[data-testid="tweet"]');
     articles.forEach((article) => {
       analyzeTweet(article);
-    });
-  }
-
-  // ─── MutationObserver ─────────────────────────────────────────────────────────
-
-  /**
-   * Watches for new tweets injected into the DOM (infinite scroll, navigation).
-   */
+    });}
+   //Watches for new tweets injected into the DOM (infinite scroll, navigation).
+  //Debounce funtion 
+  function debounce(fn, delay) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
   function startObserver() {
     const observer = new MutationObserver((mutations) => {
       let hasNewNodes = false;
@@ -272,7 +274,7 @@ async function checkSpam(text) {
       }
       if (hasNewNodes) {
         // Debounce to avoid hammering on rapid mutations
-        requestAnimationFrame(processTweets);
+        debouncedProcess();
       }
     });
 
