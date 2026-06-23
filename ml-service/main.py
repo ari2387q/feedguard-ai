@@ -10,9 +10,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-model = joblib.load('spam_model.pkl')
-vectorizer = joblib.load('vectorizer.pkl')
+try:
+    model = joblib.load('spam_model.pkl')
+    vectorizer = joblib.load('vectorizer.pkl')
+except FileNotFoundError as e:
+    raise RuntimeError(f"model file is not foun:{e} run teh nb first")
 
 class Message(BaseModel):
     text: str
