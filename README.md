@@ -22,8 +22,8 @@ FeedGuard AI v2 is a next-generation browser extension and full-stack ecosystem 
 
 ---
 
-> **Demo Video Placeholder**  
-> ![Demo Video](/path/to/demo_video_placeholder.mp4)  
+> **Demo-live example**  
+> ![Demo-live example](./assets/example.png)  
 > *Watch FeedGuard AI v2 in action.*
 
 ---
@@ -59,8 +59,8 @@ Everything is **individually toggleable**, **privacy-respecting** (text is only 
 
 ---
 
-> **Dashboard UI Placeholder**  
-> ![Dashboard Analytics Dashboard](/path/to/dashboard_placeholder.png)  
+> **Dashboard UI**  
+> ![Dashboard Analytics Dashboard](./assets/toxic.png)  
 > *Real-time telemetry dashboard.*
 
 ---
@@ -129,8 +129,8 @@ FeedGuard v2 is a full-stack monorepo consisting of 4 integrated services intera
 
 ---
 
-> **Extension Action Placeholder**  
-> ![Browser Extension Popup](/path/to/popup_placeholder.png)  
+> **Extension Action**  
+> ![Browser Extension Popup](./assets/ragebait.png)  
 > *The FeedGuard v2 Popup UI.*
 
 ---
