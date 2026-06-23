@@ -57,12 +57,19 @@ It is a comprehensive **Chrome browser extension** currently focused on **X (Twi
 
 Everything is **individually toggleable**, **privacy-respecting** (text is only sent to AI when strictly necessary), and backed by a **live Next.js analytics dashboard** to monitor exactly how much noise your feed has been producing.
 
+<<<<<<< HEAD
 ---
 
 > **Dashboard UI**  
 > ![Dashboard Analytics Dashboard](./assets/toxic.png)  
 > *Real-time telemetry dashboard.*
 
+=======
+> **Examples**  
+> ![Demo-live example](./assets/ml-spam.png)  
+> ![Demo-live example](./assets/toxic.png)
+> ![Demo-live example](./assets/messi-real.png)  
+>>>>>>> ce9f2c9c3b90b5f8f3f07f63ebefa6da80370330
 ---
 
 ## 🧠 The Tri-Layer Intelligence Stack
@@ -247,7 +254,7 @@ Load the `extension/` folder in Chrome via `chrome://extensions/` with **Develop
 Create `backend/.env`:
 ```env
 GROQ_API_KEY=gsk_your_key_here
-MONGODB_URI=mongodb+srv://aryanthegoat345_db_user:OWlDEsvkq1PGQuJ0@feedguard-ai.rj4c0ex.mongodb.net/?appName=feedguard-ai
+MONGODB_URI=mongodb+srv://aryanthegoat345_db_user:@@@@@@@@@@@@feedguard-ai.rj4c0ex.mongodb.net/?appName=feedguard-ai
 PORT=3001
 ```
 
