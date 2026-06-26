@@ -7,10 +7,10 @@ import RecentActivity from './components/RecentActivity';
  * Fetches today’s aggregated stats from the backend.
  * Falls back to dummy data if the backend is not running or fails.
  */
-async function fetchStats() {
+async function fetchStats(userId: string) {
   try {
-    const res = await fetch('http://localhost:3001/api/user?userId=demo', {
-      next: { revalidate: 10 } // Cache for 10 seconds
+    const res = await fetch(`http://localhost:3001/api/user?userId=${userId}`, {
+      cache: 'no-store'
     });
     if (!res.ok) throw new Error('Backend response not OK');
     const data = await res.json();
@@ -40,8 +40,9 @@ async function fetchStats() {
   }
 }
 
-export default async function Home() {
-  const stats = await fetchStats();
+export default async function Home({ searchParams }: { searchParams: { userId?: string } }) {
+  const userId = searchParams.userId || 'demo';
+  const stats = await fetchStats(userId);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -85,14 +86,14 @@ export default async function Home() {
         <div className="lg:col-span-2 bg-surface border border-border rounded-xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-white mb-6 font-sans">Weekly Usage</h2>
           <div className="h-[300px] w-full">
-            <UsageChart />
+            <UsageChart userId={userId} />
           </div>
         </div>
 
         {/* Recent Activity Feed */}
         <div className="bg-surface border border-border rounded-xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-white mb-6 font-sans">Recent Activity</h2>
-          <RecentActivity />
+          <RecentActivity userId={userId} />
         </div>
       </div>
     </div>

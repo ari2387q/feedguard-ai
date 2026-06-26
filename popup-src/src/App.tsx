@@ -43,6 +43,7 @@ const DEFAULT_STATS: DailyStats = {
 const App: React.FC = () => {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [stats, setStats] = useState<DailyStats>(DEFAULT_STATS);
+  const [userId, setUserId] = useState<string>('demo');
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -53,8 +54,9 @@ const App: React.FC = () => {
         const syncData = await chrome.storage.sync.get('settings');
         if (syncData.settings) setSettings(syncData.settings as Settings);
 
-        const localData = await chrome.storage.local.get('stats');
+        const localData = await chrome.storage.local.get(['stats', 'userId']);
         if (localData.stats) setStats(localData.stats as DailyStats);
+        if (localData.userId) setUserId(localData.userId as string);
       } catch (err) {
         console.error('[FeedGuard Popup] Failed to load storage:', err);
       } finally {
@@ -185,7 +187,7 @@ const App: React.FC = () => {
       {/* Footer */}
       <footer style={styles.footer}>
         <a
-          href="http://localhost:3000"
+          href={`http://localhost:3000/?userId=${userId}`}
           target="_blank"
           rel="noreferrer"
           style={styles.dashboardLink}

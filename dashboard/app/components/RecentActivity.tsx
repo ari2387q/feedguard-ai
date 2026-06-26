@@ -13,7 +13,7 @@ interface Activity {
 /**
  * Component that displays recent activity feed based on daily stats changes
  */
-export default function RecentActivity() {
+export default function RecentActivity({ userId = 'demo' }: { userId?: string }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,11 +22,11 @@ export default function RecentActivity() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchActivities, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [userId]);
 
   const fetchActivities = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/user?userId=demo');
+      const response = await fetch(`http://localhost:3001/api/user?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
       
       const result = await response.json();

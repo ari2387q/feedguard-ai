@@ -17,7 +17,7 @@ interface ChartData {
   filtered: number;
 }
 
-export default function UsageChart() {
+export default function UsageChart({ userId = 'demo' }: { userId?: string }) {
   // Prevent hydration mismatch by only rendering chart on client
   const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<ChartData[]>([]);
@@ -33,7 +33,7 @@ export default function UsageChart() {
   useEffect(() => {
     const fetchChartData = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/user?userId=demo');
+        const response = await fetch(`http://localhost:3001/api/user?userId=${userId}`);
         if (!response.ok) throw new Error('Failed to fetch stats');
         
         const result = await response.json();

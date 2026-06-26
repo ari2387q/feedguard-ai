@@ -64,7 +64,16 @@ export const userController = {
       const user = await userService.getUserStats(userId);
 
       if (!user) {
-        res.status(404).json({ error: 'User not found.' });
+        // Return a clean default user object if it doesn't exist in DB yet
+        res.json({
+          user: {
+            userId,
+            videosFiltered: 0,
+            toxicBlocked: 0,
+            timeSpent: 0,
+            dailyStats: [],
+          }
+        });
         return;
       }
 
