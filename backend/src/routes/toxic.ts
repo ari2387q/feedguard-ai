@@ -6,7 +6,7 @@ const router = Router();
 router.post('/', async (req, res) => {
   try {
     const { text } = req.body;
-    const response = await fetch('http://localhost:8000/predict-toxic', {
+      const response = await fetch(`${process.env.ML_SERVICE_URL}/predict-toxic`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
