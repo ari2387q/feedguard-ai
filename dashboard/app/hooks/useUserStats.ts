@@ -39,7 +39,7 @@ export function useUserStats(userId: string = 'demo'): UseUserStatsReturn {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`http://localhost:3001/api/user?userId=${userId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://feedguard.onrender.com'}/api/user?userId=${userId}`);
       
       if (!response.ok) {
         throw new Error(`Backend response: ${response.status}`);

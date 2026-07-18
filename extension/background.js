@@ -3,7 +3,7 @@
  * Handles inter-script messaging, alarm management, and storage initialization.
  */
 
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = 'https://feedguard.onrender.com';
 
 /** Default settings applied on first install */
 const DEFAULT_SETTINGS = {

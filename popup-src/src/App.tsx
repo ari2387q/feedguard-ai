@@ -187,7 +187,7 @@ const App: React.FC = () => {
       {/* Footer */}
       <footer style={styles.footer}>
         <a
-          href={`http://localhost:3000/?userId=${userId}`}
+          href={`https://feedguard-ai-dashboard.vercel.app/?userId=${userId}`}
           target="_blank"
           rel="noreferrer"
           style={styles.dashboardLink}

@@ -26,7 +26,7 @@ export default function RecentActivity({ userId = 'demo' }: { userId?: string })
 
   const fetchActivities = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/user?userId=${userId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://feedguard.onrender.com'}/api/user?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
       
       const result = await response.json();
