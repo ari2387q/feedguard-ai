@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FeedGuard AI - Background Service Worker (Manifest V3)
  * Handles inter-script messaging, alarm management, and storage initialization.
  */
@@ -11,12 +11,9 @@ const BACKEND_URL = 'https://feedguard.onrender.com';
 
 /** Default settings applied on first install */
 const DEFAULT_SETTINGS = {
-  clickbaitFilter: true,
-  doomscrollTimer: true,
-  aiSummarize: true,
   toxicFilter: true,
-  timeLimit: 30, // minutes
 };
+
 
 /** Default stats object for daily tracking */
 const DEFAULT_STATS = {

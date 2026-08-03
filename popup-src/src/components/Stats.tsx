@@ -40,20 +40,6 @@ const Stats: React.FC<StatsProps> = ({ stats }) => {
 
   const tiles: StatTile[] = [
     {
-      icon: '🚨',
-      label: 'Filtered',
-      value: String(stats.videosFiltered),
-      color: '#f87171',
-      bg: 'rgba(239,68,68,0.08)',
-    },
-    {
-      icon: '⏱️',
-      label: 'Time Spent',
-      value: formatDuration(stats.timeSpent),
-      color: '#818cf8',
-      bg: 'rgba(99,102,241,0.08)',
-    },
-    {
       icon: '☣️',
       label: 'Toxic Blocked',
       value: String(stats.toxicBlocked),
@@ -61,6 +47,7 @@ const Stats: React.FC<StatsProps> = ({ stats }) => {
       bg: 'rgba(52,211,153,0.08)',
     },
   ];
+
 
   return (
     <div style={styles.grid}>
@@ -81,11 +68,11 @@ const Stats: React.FC<StatsProps> = ({ stats }) => {
 
 const styles: Record<string, React.CSSProperties> = {
   grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: 8,
+    display: 'flex',
+    justifyContent: 'center',
     paddingTop: 4,
   },
+
   card: {
     display: 'flex',
     flexDirection: 'column',

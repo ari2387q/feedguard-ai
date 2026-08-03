@@ -1,15 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Toggle from './components/Toggle';
-import Timer from './components/Timer';
 import Stats from './components/Stats';
 
 /** Shape of persisted settings stored in chrome.storage.sync */
 export interface Settings {
-  clickbaitFilter: boolean;
-  doomscrollTimer: boolean;
-  aiSummarize: boolean;
   toxicFilter: boolean;
-  timeLimit: number; // minutes
 }
 
 /** Shape of daily statistics stored in chrome.storage.local */
@@ -21,11 +16,7 @@ export interface DailyStats {
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  clickbaitFilter: true,
-  doomscrollTimer: true,
-  aiSummarize: true,
   toxicFilter: true,
-  timeLimit: 30,
 };
 
 const DEFAULT_STATS: DailyStats = {
@@ -81,18 +72,8 @@ const App: React.FC = () => {
    * Toggles a boolean setting field and persists.
    * @param key - The settings key to toggle
    */
-  const handleToggle = (key: keyof Omit<Settings, 'timeLimit'>) => {
+  const handleToggle = (key: keyof Settings) => {
     const next = { ...settings, [key]: !settings[key] };
-    setSettings(next);
-    persistSettings(next);
-  };
-
-  /**
-   * Updates the time limit value and persists.
-   * @param value - New time limit in minutes
-   */
-  const handleTimeLimitChange = (value: number) => {
-    const next = { ...settings, timeLimit: value };
     setSettings(next);
     persistSettings(next);
   };
@@ -129,54 +110,14 @@ const App: React.FC = () => {
         <div style={styles.sectionTitle}>FILTERS</div>
 
         <Toggle
-          id="toggle-clickbait"
-          label="Clickbait Filter"
-          description="Hides misleading video titles"
-          icon="🚨"
-          enabled={settings.clickbaitFilter}
-          onToggle={() => handleToggle('clickbaitFilter')}
-        />
-        <Toggle
-          id="toggle-doomscroll"
-          label="Doomscroll Timer"
-          description="Limits feed browsing time"
-          icon="⏱️"
-          enabled={settings.doomscrollTimer}
-          onToggle={() => handleToggle('doomscrollTimer')}
-        />
-        <Toggle
-          id="toggle-summarize"
-          label="AI Summarize"
-          description="Shows summary on video hover"
-          icon="🤖"
-          enabled={settings.aiSummarize}
-          onToggle={() => handleToggle('aiSummarize')}
-        />
-        <Toggle
           id="toggle-toxic"
           label="Toxic Content Filter"
-          description="Flags rage bait & toxic tweets"
+          description="Flags rage bait & toxic tweets on X"
           icon="☣️"
           enabled={settings.toxicFilter}
           onToggle={() => handleToggle('toxicFilter')}
         />
       </section>
-
-      <div style={styles.divider} />
-
-      {/* Timer Slider */}
-      {settings.doomscrollTimer && (
-        <>
-          <section style={styles.section}>
-            <div style={styles.sectionTitle}>TIME LIMIT</div>
-            <Timer
-              value={settings.timeLimit}
-              onChange={handleTimeLimitChange}
-            />
-          </section>
-          <div style={styles.divider} />
-        </>
-      )}
 
       {/* Stats */}
       <section style={styles.section}>
