@@ -5,6 +5,7 @@ import Stats from './components/Stats';
 /** Shape of persisted settings stored in chrome.storage.sync */
 export interface Settings {
   toxicFilter: boolean;
+  spamFilter: boolean;
 }
 
 /** Shape of daily statistics stored in chrome.storage.local */
@@ -17,6 +18,7 @@ export interface DailyStats {
 
 const DEFAULT_SETTINGS: Settings = {
   toxicFilter: true,
+  spamFilter: true,
 };
 
 const DEFAULT_STATS: DailyStats = {
@@ -117,6 +119,14 @@ const App: React.FC = () => {
           enabled={settings.toxicFilter}
           onToggle={() => handleToggle('toxicFilter')}
         />
+        <Toggle
+          id="toggle-spam"
+          label="Spam Filter"
+          description="Detects and hides spam tweets"
+          icon="🚫"
+          enabled={settings.spamFilter}
+          onToggle={() => handleToggle('spamFilter')}
+        />
       </section>
 
       {/* Stats */}
@@ -146,14 +156,13 @@ const styles: Record<string, React.CSSProperties> = {
   app: {
     display: 'flex',
     flexDirection: 'column',
-    width: 340,
-    minHeight: 480,
+    width: 320,
     background: 'var(--bg)',
     overflow: 'hidden',
   },
   loadingContainer: {
-    width: 340,
-    height: 480,
+    width: 320,
+    height: 200,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -173,7 +182,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '14px 16px 12px',
+    padding: '10px 14px 8px',
     background: 'var(--surface)',
   },
   logo: {
@@ -182,7 +191,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
   },
   logoIcon: {
-    fontSize: 28,
+    fontSize: 22,
   },
   logoName: {
     fontSize: 15,
@@ -210,24 +219,23 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--border)',
   },
   section: {
-    padding: '12px 16px',
+    padding: '8px 14px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
+    gap: 2,
   },
   sectionTitle: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 700,
     color: 'var(--muted)',
     letterSpacing: '1px',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   footer: {
-    padding: '10px 16px',
+    padding: '8px 14px',
     display: 'flex',
     justifyContent: 'flex-end',
     borderTop: '1px solid var(--border)',
-    marginTop: 'auto',
   },
   dashboardLink: {
     color: 'var(--accent)',

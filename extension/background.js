@@ -12,6 +12,7 @@ const BACKEND_URL = 'https://feedguard.onrender.com';
 /** Default settings applied on first install */
 const DEFAULT_SETTINGS = {
   toxicFilter: true,
+  spamFilter: true,
 };
 
 

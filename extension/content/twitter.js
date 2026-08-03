@@ -7,11 +7,8 @@
 
   /** @type {{ clickbaitFilter: boolean, doomscrollTimer: boolean, aiSummarize: boolean, toxicFilter: boolean, timeLimit: number }} */
   let settings = {
-    clickbaitFilter: true,
-    doomscrollTimer: true,
-    aiSummarize: true,
     toxicFilter: true,
-    timeLimit: 30,
+    spamFilter: true,
   };
 
   /** @type {WeakSet<Element>} Tracks already-processed tweet elements */
@@ -206,7 +203,7 @@ async function checkToxic(text) {
 
     // Quick local heuristic pass to avoid unnecessary API calls
     const { likelyToxic, likelyRagebait } = quickHeuristicCheck(text);
-    const spamResult = await checkSpam(text);
+    const spamResult = settings.spamFilter ? await checkSpam(text) : null;
     if (spamResult && spamResult.label === 'SPAM') {
     const spamData = {
         toxic: false,
