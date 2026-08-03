@@ -52,9 +52,9 @@ export default function RecentActivity({ userId = 'demo' }: { userId?: string })
           if (filtered > 0 || index === 0) {
             newActivities.push({
               id: `filtered-${stat.date}`,
-              action: `Blocked ${filtered > 0 ? filtered : stat.filtered} clickbait video${filtered !== 1 ? 's' : ''}`,
+              action: `Filtered ${filtered > 0 ? filtered : stat.filtered} tweet${filtered !== 1 ? 's' : ''}`,
               time: timeAgo,
-              icon: '🚨',
+              icon: '🐦',
               timestamp: date.getTime(),
             });
           }

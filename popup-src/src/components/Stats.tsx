@@ -66,8 +66,8 @@ const styles: Record<string, React.CSSProperties> = {
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: 8,
-    paddingTop: 4,
+    gap: 6,
+    paddingTop: 2,
   },
 
   card: {
@@ -75,8 +75,8 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    padding: '12px 6px',
+    gap: 4,
+    padding: '10px 8px',
     borderRadius: 10,
     cursor: 'default',
     transition: 'transform 0.15s ease',

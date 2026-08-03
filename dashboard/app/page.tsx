@@ -65,17 +65,17 @@ export default async function Home({ searchParams }: { searchParams: { userId?: 
           trendPositive={true}
         />
         <StatCard
-          title="Clickbait Filtered"
+          title="Tweets Filtered (ML)"
           value={stats.videosFiltered.toString()}
-          icon="🚨"
-          trend="+5% this week"
+          icon="🐦"
+          
           trendPositive={true}
         />
         <StatCard
           title="Toxic Posts Blocked"
           value={stats.toxicBlocked.toString()}
           icon="☣️"
-          trend="-2% this week"
+          
           trendPositive={false}
         />
       </div>

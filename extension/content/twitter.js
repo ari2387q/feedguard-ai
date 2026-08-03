@@ -179,7 +179,8 @@ async function checkToxic(text) {
   // Tweet Analysis
   /**
    * Analyzes a single tweet element for toxic/rage-bait content.
-   * Uses a local heuristic first; escalates to AI analysis if needed.
+   * Uses ML checks (server-side) and escalates to LLM analysis if needed.
+   * Heuristic short-circuiting has been disabled to prefer ML-only.
    * @param {Element} article - Tweet article DOM element
    */
   async function analyzeTweet(article) {
@@ -201,28 +202,23 @@ async function checkToxic(text) {
       return;
     }
 
-    // Quick local heuristic pass to avoid unnecessary API calls
-    const { likelyToxic, likelyRagebait } = quickHeuristicCheck(text);
+    // ML spam check (optional) — keep ML-based detector
     const spamResult = settings.spamFilter ? await checkSpam(text) : null;
     if (spamResult && spamResult.label === 'SPAM') {
-    const spamData = {
+      const spamData = {
         toxic: false,
         ragebait: false,
         clickbait: false,
         reason: `ML spam detector flagged this (${spamResult.confidence}% confident)`,
-    };
-    analysisCache.set(text, spamData);
-    injectWarningBadge(article, spamData);
-    updateSpamStats();
-    return;
-}
-    if (!likelyToxic && !likelyRagebait) {
-  analysisCache.set(text, { toxic: false, ragebait: false, clickbait: false, reason: '' });
-  return;
-}
+      };
+      analysisCache.set(text, spamData);
+      injectWarningBadge(article, spamData);
+      updateSpamStats();
+      return;
+    }
 
-// ML toxic check before escalating to Groq
-const toxicResult = await checkToxic(text);
+    // ML toxic check before escalating to Groq
+    const toxicResult = await checkToxic(text);
 if (toxicResult && toxicResult.label === 'TOXIC') {
   const toxicData = {
     toxic: true,
@@ -246,18 +242,7 @@ if (toxicResult && toxicResult.label === 'TOXIC') {
       });
 
       if (!result || result.error) {
-        // Fallback: use heuristic result
-        if (likelyToxic || likelyRagebait) {
-          const fallback = {
-            toxic: likelyToxic,
-            ragebait: likelyRagebait,
-            clickbait: false,
-            reason: 'Heuristic detection (AI unavailable)',
-          };
-          analysisCache.set(text, fallback);
-          injectWarningBadge(article, fallback);
-          updateToxicStats();
-        }
+        // If AI analysis unavailable, don't fallback to local heuristics — prefer ML-only behavior
         return;
       }
 
