@@ -1,4 +1,4 @@
-﻿
+
 (function () {
   'use strict';
 
@@ -101,27 +101,43 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     `;
 
-    const icon = isToxic ? 'â˜£ï¸' : 'âš ï¸';
+    const icon = isToxic ? '☣️' : '⚠️';
     const label = isToxic
       ? 'Toxic Content Detected'
       : isRage
       ? 'Rage Bait Detected'
       : 'Potentially Harmful';
 
-    banner.innerHTML = `
-      <span style="font-size: 18px; flex-shrink: 0;">${icon}</span>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-weight: 700; font-size: 13px; color: ${isToxic ? '#fca5a5' : '#fcd34d'}; margin-bottom: 3px;">
-          ðŸ›¡ FeedGuard â€” ${label}
-        </div>
-        <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">${reason || 'This content may be harmful or designed to provoke anger.'}</div>
-        <button class="fg-reveal-btn" style="
-          margin-top: 6px; background: transparent; border: 1px solid #334155;
-          color: #64748b; font-size: 11px; padding: 2px 10px; border-radius: 20px;
-          cursor: pointer; font-family: inherit;
-        ">Show tweet anyway</button>
-      </div>
+    // Build banner content using safe DOM API (no innerHTML with dynamic data)
+    const iconEl = document.createElement('span');
+    iconEl.style.cssText = 'font-size: 18px; flex-shrink: 0;';
+    iconEl.textContent = icon;
+
+    const textWrap = document.createElement('div');
+    textWrap.style.cssText = 'flex: 1; min-width: 0;';
+
+    const titleEl = document.createElement('div');
+    titleEl.style.cssText = `font-weight: 700; font-size: 13px; color: ${isToxic ? '#fca5a5' : '#fcd34d'}; margin-bottom: 3px;`;
+    titleEl.textContent = `\uD83D\uDEE1 FeedGuard \u2014 ${label}`;
+
+    const reasonEl = document.createElement('div');
+    reasonEl.style.cssText = 'font-size: 12px; color: #94a3b8; line-height: 1.4;';
+    reasonEl.textContent = reason || 'This content may be harmful or designed to provoke anger.';
+
+    const revealBtn = document.createElement('button');
+    revealBtn.className = 'fg-reveal-btn';
+    revealBtn.style.cssText = `
+      margin-top: 6px; background: transparent; border: 1px solid #334155;
+      color: #64748b; font-size: 11px; padding: 2px 10px; border-radius: 20px;
+      cursor: pointer; font-family: inherit;
     `;
+    revealBtn.textContent = 'Show tweet anyway';
+
+    textWrap.appendChild(titleEl);
+    textWrap.appendChild(reasonEl);
+    textWrap.appendChild(revealBtn);
+    banner.appendChild(iconEl);
+    banner.appendChild(textWrap);
 
     // Insert the banner before the tweet's main content
     const tweetContent = article.querySelector('[data-testid="tweetText"]');
@@ -132,7 +148,7 @@
 
     article.insertBefore(banner, article.firstChild);
 
-    banner.querySelector('.fg-reveal-btn').addEventListener('click', () => {
+    revealBtn.addEventListener('click', () => {
       banner.remove();
       if (tweetContent) tweetContent.style.filter = 'none';
     });

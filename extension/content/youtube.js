@@ -1,4 +1,4 @@
-﻿
+
 
 (function () {
   'use strict';
@@ -239,12 +239,21 @@
           });
 
           if (response && response.summary) {
-            tooltip.innerHTML = `<strong style="color:#818cf8">ðŸ¤– AI Summary</strong><br>${response.summary}`;
+            // Safe DOM construction — response.summary is external data, never use innerHTML
+            tooltip.textContent = '';
+            const label = document.createElement('strong');
+            label.style.color = '#818cf8';
+            label.textContent = '\uD83E\uDD16 AI Summary';
+            const br = document.createElement('br');
+            const summaryText = document.createTextNode(response.summary);
+            tooltip.appendChild(label);
+            tooltip.appendChild(br);
+            tooltip.appendChild(summaryText);
           } else {
-            tooltip.textContent = 'âš ï¸ Summary unavailable';
+            tooltip.textContent = '⚠️ Summary unavailable';
           }
         } catch {
-          tooltip.textContent = 'âš ï¸ Backend not reachable';
+          tooltip.textContent = '⚠️ Backend not reachable';
         }
       }, 600);
     });
@@ -258,7 +267,7 @@
     });
   }
 
-  // â”€â”€â”€ Doomscroll Timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ————————————————————————————————————————————————————————————————
 
   /**
    * Creates and injects the doomscroll warning overlay into the document body.
@@ -284,24 +293,49 @@
       backdrop-filter: blur(6px);
     `;
 
-    overlay.innerHTML = `
-      <div style="font-size: 56px;">ðŸ›¡ï¸</div>
-      <h2 style="margin:0; font-size: 28px; font-weight: 700; color: #818cf8;">Time Limit Reached</h2>
-      <p style="margin:0; font-size: 16px; color: #94a3b8; text-align:center; max-width: 360px;">
-        You've been on YouTube for <strong style="color:#6366f1">${Math.round(timeSpentSeconds / 60)} minutes</strong>.<br>
-        Take a break â€” your future self will thank you.
-      </p>
-      <div style="display:flex; gap: 12px; margin-top: 8px;">
-        <button id="fg-snooze-btn" style="
-          background: #6366f1; color: #fff; border: none; padding: 10px 24px;
-          border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 600;
-        ">Snooze 10 min</button>
-        <button id="fg-dismiss-btn" style="
-          background: transparent; color: #64748b; border: 1px solid #334155;
-          padding: 10px 24px; border-radius: 8px; font-size: 15px; cursor: pointer;
-        ">Dismiss</button>
-      </div>
-    `;
+    // Build overlay using safe DOM API (eliminates UNSAFE_VAR_ASSIGNMENT lint warning)
+    const shieldIcon = document.createElement('div');
+    shieldIcon.style.fontSize = '56px';
+    shieldIcon.textContent = '\uD83D\uDEE1\uFE0F';
+
+    const heading = document.createElement('h2');
+    heading.style.cssText = 'margin:0; font-size: 28px; font-weight: 700; color: #818cf8;';
+    heading.textContent = 'Time Limit Reached';
+
+    const para = document.createElement('p');
+    para.style.cssText = 'margin:0; font-size: 16px; color: #94a3b8; text-align:center; max-width: 360px;';
+    const paraText1 = document.createTextNode("You've been on YouTube for ");
+    const minutesStrong = document.createElement('strong');
+    minutesStrong.style.color = '#6366f1';
+    minutesStrong.textContent = `${Math.round(timeSpentSeconds / 60)} minutes`;
+    const paraText2 = document.createTextNode('.');
+    const paraBr = document.createElement('br');
+    const paraText3 = document.createTextNode('Take a break \u2014 your future self will thank you.');
+    para.appendChild(paraText1);
+    para.appendChild(minutesStrong);
+    para.appendChild(paraText2);
+    para.appendChild(paraBr);
+    para.appendChild(paraText3);
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex; gap: 12px; margin-top: 8px;';
+
+    const snoozeBtn = document.createElement('button');
+    snoozeBtn.id = 'fg-snooze-btn';
+    snoozeBtn.style.cssText = 'background: #6366f1; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 600;';
+    snoozeBtn.textContent = 'Snooze 10 min';
+
+    const dismissBtn = document.createElement('button');
+    dismissBtn.id = 'fg-dismiss-btn';
+    dismissBtn.style.cssText = 'background: transparent; color: #64748b; border: 1px solid #334155; padding: 10px 24px; border-radius: 8px; font-size: 15px; cursor: pointer;';
+    dismissBtn.textContent = 'Dismiss';
+
+    btnRow.appendChild(snoozeBtn);
+    btnRow.appendChild(dismissBtn);
+    overlay.appendChild(shieldIcon);
+    overlay.appendChild(heading);
+    overlay.appendChild(para);
+    overlay.appendChild(btnRow);
 
     document.body.appendChild(overlay);
 
