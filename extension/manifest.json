@@ -9,12 +9,7 @@
       "strict_min_version": "121.0",
       "data_collection_permissions": {
         "required": [],
-        "optional": [
-          {
-            "description": "Tweet and video title text is sent to our backend for AI content moderation (clickbait, toxicity, spam detection). No personal data or browsing history is stored.",
-            "data": "content"
-          }
-        ]
+        "optional": ["content"]
       }
     }
   },
