@@ -1,8 +1,9 @@
-
+﻿
 (function () {
   'use strict';
 
-  // State
+  // Cross-browser API compatibility shim
+  const ext = typeof browser !== 'undefined' ? browser : chrome; // eslint-disable-line no-undef
 
   /** @type {{ clickbaitFilter: boolean, doomscrollTimer: boolean, aiSummarize: boolean, toxicFilter: boolean, timeLimit: number }} */
   let settings = {
@@ -58,8 +59,7 @@
     'bet you didn\'t know',
   ];
 
-  /**
-   * Performs a fast heuristic check on tweet text before making an API call.
+  /*
    * Returns true if the text is likely toxic/rage-bait.
    * @param {string} text
    * @returns {{ likelyToxic: boolean, likelyRagebait: boolean }}
@@ -101,7 +101,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     `;
 
-    const icon = isToxic ? '☣️' : '⚠️';
+    const icon = isToxic ? 'â˜£ï¸' : 'âš ï¸';
     const label = isToxic
       ? 'Toxic Content Detected'
       : isRage
@@ -112,7 +112,7 @@
       <span style="font-size: 18px; flex-shrink: 0;">${icon}</span>
       <div style="flex: 1; min-width: 0;">
         <div style="font-weight: 700; font-size: 13px; color: ${isToxic ? '#fca5a5' : '#fcd34d'}; margin-bottom: 3px;">
-          🛡 FeedGuard — ${label}
+          ðŸ›¡ FeedGuard â€” ${label}
         </div>
         <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">${reason || 'This content may be harmful or designed to provoke anger.'}</div>
         <button class="fg-reveal-btn" style="
@@ -140,7 +140,7 @@
   // NEW - goes through background.js
 async function checkSpam(text) {
     try {
-        const result = await chrome.runtime.sendMessage({
+        const result = await ext.runtime.sendMessage({
             type: 'CHECK_SPAM',
             payload: { text }
         });
@@ -153,7 +153,7 @@ async function checkSpam(text) {
 //To check the toxicity
 async function checkToxic(text) {
   try {
-    const result = await chrome.runtime.sendMessage({
+    const result = await ext.runtime.sendMessage({
       type: 'CHECK_TOXIC',
       payload: { text }
     });
@@ -227,7 +227,7 @@ if (toxicResult && toxicResult.label === 'TOXIC') {
 
     // Escalate to AI analysis via background worker
     try {
-      const result = await chrome.runtime.sendMessage({
+      const result = await ext.runtime.sendMessage({
         type: 'ANALYZE_TWEET',
         payload: { text },
       });
@@ -263,7 +263,7 @@ if (toxicResult && toxicResult.label === 'TOXIC') {
    * Sends a toxicBlocked increment to the background service worker.
    */
   function updateToxicStats() {
-    chrome.runtime.sendMessage({
+    ext.runtime.sendMessage({
       type: 'UPDATE_STATS',
       payload: { toxicBlocked: 1 },
     });
@@ -316,7 +316,7 @@ if (toxicResult && toxicResult.label === 'TOXIC') {
    */
   async function init() {
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+      const response = await ext.runtime.sendMessage({ type: 'GET_SETTINGS' });
       if (response && response.settings) {
         settings = response.settings;
       }

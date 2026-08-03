@@ -1,7 +1,11 @@
-/**
+﻿/**
  * FeedGuard AI - Background Service Worker (Manifest V3)
  * Handles inter-script messaging, alarm management, and storage initialization.
  */
+
+// Cross-browser API compatibility shim
+/* global browser */
+const ext = typeof browser !== 'undefined' ? browser : chrome; // eslint-disable-line no-undef
 
 const BACKEND_URL = 'https://feedguard.onrender.com';
 
@@ -22,41 +26,41 @@ const DEFAULT_STATS = {
   date: new Date().toISOString().split('T')[0],
 };
 
-// ─── Initialization ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Runs on extension install/update.
- * Seeds chrome.storage.sync with default settings if not already present.
+ * Seeds ext.storage.sync with default settings if not already present.
  */
-chrome.runtime.onInstalled.addListener(async () => {
-  const { userId } = await chrome.storage.local.get('userId');
+ext.runtime.onInstalled.addListener(async () => {
+  const { userId } = await ext.storage.local.get('userId');
   if (!userId) {
-      await chrome.storage.local.set({ userId: crypto.randomUUID() });
+      await ext.storage.local.set({ userId: crypto.randomUUID() });
   }
-  const existing = await chrome.storage.sync.get('settings');
+  const existing = await ext.storage.sync.get('settings');
   if (!existing.settings) {
-    await chrome.storage.sync.set({ settings: DEFAULT_SETTINGS });
+    await ext.storage.sync.set({ settings: DEFAULT_SETTINGS });
     console.log('[FeedGuard] Default settings initialized.');
   }
 
-  const existingStats = await chrome.storage.local.get('stats');
+  const existingStats = await ext.storage.local.get('stats');
   if (!existingStats.stats) {
-    await chrome.storage.local.set({ stats: DEFAULT_STATS });
+    await ext.storage.local.set({ stats: DEFAULT_STATS });
     console.log('[FeedGuard] Default stats initialized.');
   }
 
 });
 
-// ─── Alarm for daily stats reset ─────────────────────────────────────────────
+// â”€â”€â”€ Alarm for daily stats reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-chrome.alarms.create('dailyReset', { periodInMinutes: 60 });
+ext.alarms.create('dailyReset', { periodInMinutes: 60 });
 
-chrome.alarms.onAlarm.addListener(async (alarm) => {
+ext.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'dailyReset') {
     const today = new Date().toISOString().split('T')[0];
-    const { stats } = await chrome.storage.local.get('stats');
+    const { stats } = await ext.storage.local.get('stats');
     if (stats && stats.date !== today) {
-      await chrome.storage.local.set({
+      await ext.storage.local.set({
         stats: { ...DEFAULT_STATS, date: today },
       });
       console.log('[FeedGuard] Daily stats reset for:', today);
@@ -64,13 +68,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
-// ─── Message Handling ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Message Handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Central message router for content scripts and popup.
  * All Groq API calls are proxied through the backend via this service worker.
  */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
     case 'GET_SETTINGS':
       handleGetSettings(sendResponse);
@@ -107,15 +111,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// ─── Handlers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * Retrieves current settings from chrome.storage.sync.
+ * Retrieves current settings from ext.storage.sync.
  * @param {function} sendResponse - Callback to send data back to caller
  */
 async function handleGetSettings(sendResponse) {
   try {
-    const { settings } = await chrome.storage.sync.get('settings');
+    const { settings } = await ext.storage.sync.get('settings');
     sendResponse({ settings: settings || DEFAULT_SETTINGS });
   } catch (err) {
     console.error('[FeedGuard] GET_SETTINGS error:', err);
@@ -124,14 +128,14 @@ async function handleGetSettings(sendResponse) {
 }
 
 /**
- * Merges incremental stat updates into chrome.storage.local.
+ * Merges incremental stat updates into ext.storage.local.
  * @param {{ videosFiltered?: number, toxicBlocked?: number, timeSpent?: number }} payload
  * @param {function} sendResponse
  */
 async function handleUpdateStats(payload, sendResponse) {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const { stats } = await chrome.storage.local.get('stats');
+    const { stats } = await ext.storage.local.get('stats');
     const current = stats && stats.date === today ? stats : { ...DEFAULT_STATS, date: today };
 
     const updated = {
@@ -141,7 +145,7 @@ async function handleUpdateStats(payload, sendResponse) {
       timeSpent: (current.timeSpent || 0) + (payload.timeSpent || 0),
     };
 
-    await chrome.storage.local.set({ stats: updated });
+    await ext.storage.local.set({ stats: updated });
 
     // Sync summary stats to the backend so the dashboard matches extension activity.
     const syncSuccess = await postStatsToBackend({
@@ -152,7 +156,7 @@ async function handleUpdateStats(payload, sendResponse) {
     });
 
     if (syncSuccess) {
-      await chrome.storage.local.set({ syncedStats: updated });
+      await ext.storage.local.set({ syncedStats: updated });
     }
 
     sendResponse({ success: true, stats: updated });
@@ -163,12 +167,12 @@ async function handleUpdateStats(payload, sendResponse) {
 }
 
 /**
- * Returns today's stats from chrome.storage.local.
+ * Returns today's stats from ext.storage.local.
  * @param {function} sendResponse
  */
 async function handleGetStats(sendResponse) {
   try {
-    const { stats } = await chrome.storage.local.get('stats');
+    const { stats } = await ext.storage.local.get('stats');
     sendResponse({ stats: stats || DEFAULT_STATS });
   } catch (err) {
     console.error('[FeedGuard] GET_STATS error:', err);
@@ -198,7 +202,7 @@ async function postStatsToBackend(payload) {
 
 async function syncLocalStatsToBackend() {
   try {
-    const { stats, syncedStats } = await chrome.storage.local.get(['stats', 'syncedStats']);
+    const { stats, syncedStats } = await ext.storage.local.get(['stats', 'syncedStats']);
     if (!stats) return;
 
     const last = syncedStats || { videosFiltered: 0, toxicBlocked: 0, timeSpent: 0, date: stats.date };
@@ -214,7 +218,7 @@ async function syncLocalStatsToBackend() {
 
     const success = await postStatsToBackend(delta);
     if (success) {
-      await chrome.storage.local.set({ syncedStats: stats });
+      await ext.storage.local.set({ syncedStats: stats });
     }
   } catch (err) {
     console.warn('[FeedGuard] syncLocalStatsToBackend error:', err);
@@ -304,10 +308,10 @@ syncLocalStatsToBackend().catch((err) => {
 });
 
 async function getUserId(){
-  const {userId}= await chrome.storage.local.get('userId')
+  const {userId}= await ext.storage.local.get('userId')
   if (userId) return userId;
   const newId=crypto.randomUUID();
-  await chrome.storage.local.set({userId:newId})
+  await ext.storage.local.set({userId:newId})
   return newId;
 }
 

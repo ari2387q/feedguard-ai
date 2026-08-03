@@ -1,7 +1,12 @@
-
+﻿
 
 (function () {
   'use strict';
+
+  // Cross-browser API compatibility shim
+  // Firefox exposes `browser.*` (Promise-based); Chrome exposes `chrome.*` (callback-based).
+  /* global browser */
+  const ext = typeof browser !== 'undefined' ? browser : chrome; // eslint-disable-line no-undef
 
   /** @type {{ clickbaitFilter: boolean, doomscrollTimer: boolean, aiSummarize: boolean, toxicFilter: boolean, timeLimit: number }} */
   let settings = {
@@ -23,7 +28,7 @@
   /** @type {Map<Element, boolean>} Tracks hover-tooltip state per element */
   const tooltipElements = new Map();
 
-  // ─── Clickbait Detection Heuristics ─────────────────────────────────────────
+  // â”€â”€â”€ Clickbait Detection Heuristics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const CLICKBAIT_KEYWORDS = [
     'you won\'t believe', 'shocking', 'insane', 'crazy', 'mind blowing',
@@ -36,7 +41,7 @@
   ];
 
   /**
-   * Calculates a clickbait score (0–100) for a given video title.
+   * Calculates a clickbait score (0â€“100) for a given video title.
    * @param {string} title - Raw video title text
    * @returns {{ score: number, reasons: string[] }}
    */
@@ -85,12 +90,12 @@
     return { score: Math.min(score, 100), reasons };
   }
 
-  // ─── DOM Helpers ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€ DOM Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Creates and injects a clickbait badge element into a video card.
    * @param {Element} card - The ytd-rich-item-renderer or ytd-compact-video-renderer element
-   * @param {number} score - Clickbait score (0–100)
+   * @param {number} score - Clickbait score (0â€“100)
    * @param {string[]} reasons - Array of reason strings
    */
   function injectClickbaitBadge(card, score, reasons) {
@@ -115,7 +120,7 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.4);
       letter-spacing: 0.5px;
     `;
-    badge.textContent = score > 60 ? '🚨 Clickbait' : '⚠️ Likely Bait';
+    badge.textContent = score > 60 ? 'ðŸš¨ Clickbait' : 'âš ï¸ Likely Bait';
 
     const thumbnail = card.querySelector('ytd-thumbnail, #thumbnail');
     if (thumbnail) {
@@ -154,7 +159,7 @@
     `;
 
     const label = document.createElement('span');
-    label.textContent = '🛡 Filtered';
+    label.textContent = 'ðŸ›¡ Filtered';
     label.style.cssText = `
       color: #fff;
       font-size: 13px;
@@ -223,23 +228,23 @@
       hoverTimer = setTimeout(async () => {
         if (!tooltip) {
           tooltip = createTooltip();
-          tooltip.textContent = '⏳ Loading AI summary…';
+          tooltip.textContent = 'â³ Loading AI summaryâ€¦';
           thumbnail.appendChild(tooltip);
         }
 
         try {
-          const response = await chrome.runtime.sendMessage({
+          const response = await ext.runtime.sendMessage({
             type: 'SUMMARIZE',
             payload: { title, description: '' },
           });
 
           if (response && response.summary) {
-            tooltip.innerHTML = `<strong style="color:#818cf8">🤖 AI Summary</strong><br>${response.summary}`;
+            tooltip.innerHTML = `<strong style="color:#818cf8">ðŸ¤– AI Summary</strong><br>${response.summary}`;
           } else {
-            tooltip.textContent = '⚠️ Summary unavailable';
+            tooltip.textContent = 'âš ï¸ Summary unavailable';
           }
         } catch {
-          tooltip.textContent = '⚠️ Backend not reachable';
+          tooltip.textContent = 'âš ï¸ Backend not reachable';
         }
       }, 600);
     });
@@ -253,7 +258,7 @@
     });
   }
 
-  // ─── Doomscroll Timer ─────────────────────────────────────────────────────────
+  // â”€â”€â”€ Doomscroll Timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Creates and injects the doomscroll warning overlay into the document body.
@@ -280,11 +285,11 @@
     `;
 
     overlay.innerHTML = `
-      <div style="font-size: 56px;">🛡️</div>
+      <div style="font-size: 56px;">ðŸ›¡ï¸</div>
       <h2 style="margin:0; font-size: 28px; font-weight: 700; color: #818cf8;">Time Limit Reached</h2>
       <p style="margin:0; font-size: 16px; color: #94a3b8; text-align:center; max-width: 360px;">
         You've been on YouTube for <strong style="color:#6366f1">${Math.round(timeSpentSeconds / 60)} minutes</strong>.<br>
-        Take a break — your future self will thank you.
+        Take a break â€” your future self will thank you.
       </p>
       <div style="display:flex; gap: 12px; margin-top: 8px;">
         <button id="fg-snooze-btn" style="
@@ -329,7 +334,7 @@
         showDoomscrollOverlay();
 
         // Report time spent to background
-        chrome.runtime.sendMessage({
+        ext.runtime.sendMessage({
           type: 'UPDATE_STATS',
           payload: { timeSpent: 5 },
         });
@@ -337,7 +342,7 @@
     }, 5000);
   }
 
-  // ─── Feed Processing ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Feed Processing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Processes all video cards currently in the DOM.
@@ -372,7 +377,7 @@
             applyBlurToCard(card, score);
 
             if (score >= 60) {
-              chrome.runtime.sendMessage({
+              ext.runtime.sendMessage({
                 type: 'UPDATE_STATS',
                 payload: { videosFiltered: 1 },
               });
@@ -388,7 +393,7 @@
     });
   }
 
-  // ─── MutationObserver ─────────────────────────────────────────────────────────
+  // â”€â”€â”€ MutationObserver â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Watches for DOM changes (YouTube SPA navigation / lazy-loaded cards)
@@ -411,14 +416,14 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // ─── Bootstrap ───────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Bootstrap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Initializes the content script by loading settings and starting all features.
    */
   async function init() {
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+      const response = await ext.runtime.sendMessage({ type: 'GET_SETTINGS' });
       if (response && response.settings) {
         settings = response.settings;
       }
