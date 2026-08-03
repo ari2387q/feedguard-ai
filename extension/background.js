@@ -19,8 +19,9 @@ const DEFAULT_SETTINGS = {
 /** Default stats object for daily tracking */
 const DEFAULT_STATS = {
   videosFiltered: 0,
-  timeSpent: 0,       // in seconds
+  timeSpent: 0,
   toxicBlocked: 0,
+  spamBlocked: 0,
   date: new Date().toISOString().split('T')[0],
 };
 
@@ -140,6 +141,7 @@ async function handleUpdateStats(payload, sendResponse) {
       ...current,
       videosFiltered: (current.videosFiltered || 0) + (payload.videosFiltered || 0),
       toxicBlocked: (current.toxicBlocked || 0) + (payload.toxicBlocked || 0),
+      spamBlocked: (current.spamBlocked || 0) + (payload.spamBlocked || 0),
       timeSpent: (current.timeSpent || 0) + (payload.timeSpent || 0),
     };
 

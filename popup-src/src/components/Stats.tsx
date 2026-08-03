@@ -35,6 +35,13 @@ const Stats: React.FC<StatsProps> = ({ stats }) => {
       color: '#34d399',
       bg: 'rgba(52,211,153,0.08)',
     },
+    {
+      icon: '🚫',
+      label: 'Spam Blocked',
+      value: String(stats.spamBlocked ?? 0),
+      color: '#f87171',
+      bg: 'rgba(239,68,68,0.08)',
+    },
   ];
 
 
@@ -57,8 +64,9 @@ const Stats: React.FC<StatsProps> = ({ stats }) => {
 
 const styles: Record<string, React.CSSProperties> = {
   grid: {
-    display: 'flex',
-    justifyContent: 'center',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: 8,
     paddingTop: 4,
   },
 
@@ -68,7 +76,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    padding: '10px 6px',
+    padding: '12px 6px',
     borderRadius: 10,
     cursor: 'default',
     transition: 'transform 0.15s ease',

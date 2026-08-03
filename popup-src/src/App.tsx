@@ -11,8 +11,9 @@ export interface Settings {
 /** Shape of daily statistics stored in chrome.storage.local */
 export interface DailyStats {
   videosFiltered: number;
-  timeSpent: number;  // seconds
+  timeSpent: number;
   toxicBlocked: number;
+  spamBlocked: number;
   date: string;
 }
 
@@ -25,6 +26,7 @@ const DEFAULT_STATS: DailyStats = {
   videosFiltered: 0,
   timeSpent: 0,
   toxicBlocked: 0,
+  spamBlocked: 0,
   date: new Date().toISOString().split('T')[0],
 };
 

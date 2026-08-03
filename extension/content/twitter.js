@@ -213,7 +213,7 @@ async function checkToxic(text) {
     };
     analysisCache.set(text, spamData);
     injectWarningBadge(article, spamData);
-    updateToxicStats();
+    updateSpamStats();
     return;
 }
     if (!likelyToxic && !likelyRagebait) {
@@ -279,6 +279,16 @@ if (toxicResult && toxicResult.label === 'TOXIC') {
     ext.runtime.sendMessage({
       type: 'UPDATE_STATS',
       payload: { toxicBlocked: 1 },
+    });
+  }
+
+  /**
+   * Sends a spamBlocked increment to the background service worker.
+   */
+  function updateSpamStats() {
+    ext.runtime.sendMessage({
+      type: 'UPDATE_STATS',
+      payload: { spamBlocked: 1 },
     });
   }
 
