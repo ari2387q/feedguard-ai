@@ -15,6 +15,7 @@ router.post('/', async (req, res) => {
         const data = await response.json();
         res.json(data);
     } catch (err) {
+        console.error('spam',err);
         res.status(500).json({ error: 'Spam check failed' });
     }
 });

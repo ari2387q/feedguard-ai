@@ -14,6 +14,7 @@ router.post('/', async (req, res) => {
     const data = await response.json();
     res.json(data);
   } catch (err) {
+    console.error('toxic',err);
     res.status(500).json({ error: 'Toxic check failed' });
   }
 });
