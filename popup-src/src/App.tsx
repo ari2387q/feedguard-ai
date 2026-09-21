@@ -42,7 +42,7 @@ const App: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ─── Load from storage on mount ──────────────────────────────────────────────
+  // ─── Load from storage on mount & listen for live changes ─────────────────
   useEffect(() => {
     const load = async () => {
       try {
@@ -51,7 +51,13 @@ const App: React.FC = () => {
 
         const localData = await chrome.storage.local.get(['stats', 'userId']);
         if (localData.stats) setStats(localData.stats as DailyStats);
-        if (localData.userId) setUserId(localData.userId as string);
+
+        let currentUserId = localData.userId as string;
+        if (!currentUserId || currentUserId === 'demo') {
+          currentUserId = crypto.randomUUID();
+          await chrome.storage.local.set({ userId: currentUserId });
+        }
+        setUserId(currentUserId);
       } catch (err) {
         console.error('[FeedGuard Popup] Failed to load storage:', err);
       } finally {
@@ -59,6 +65,28 @@ const App: React.FC = () => {
       }
     };
     load();
+
+    const handleStorageChange = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string
+    ) => {
+      if (areaName === 'local') {
+        if (changes.stats?.newValue) {
+          setStats(changes.stats.newValue as DailyStats);
+        }
+        if (changes.userId?.newValue) {
+          setUserId(changes.userId.newValue as string);
+        }
+      }
+      if (areaName === 'sync' && changes.settings?.newValue) {
+        setSettings(changes.settings.newValue as Settings);
+      }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
   }, []);
 
   // ─── Persist settings on change ──────────────────────────────────────────────

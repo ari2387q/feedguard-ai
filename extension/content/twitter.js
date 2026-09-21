@@ -157,31 +157,38 @@
       if (tweetContent) tweetContent.style.filter = 'none';
     });
   }
+  function isContextValid() {
+    try {
+      return Boolean(ext && ext.runtime && ext.runtime.id);
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Resilient wrapper around ext.runtime.sendMessage.
-   * MV3 service workers can go inactive; the first call wakes them but may
-   * throw "Could not establish connection". We catch that and retry once.
+   * Handles inactive service worker wakeups and silently handles extension context invalidation.
    */
   async function safeSendMessage(message) {
+    if (!isContextValid()) return null;
     try {
       return await ext.runtime.sendMessage(message);
     } catch (err) {
-      // "Receiving end does not exist" means the service worker was asleep.
-      // The failed call itself wakes it, so a single retry usually succeeds.
+      if (err?.message?.includes('Extension context invalidated')) {
+        return null;
+      }
       if (
         err?.message?.includes('Receiving end does not exist') ||
         err?.message?.includes('Could not establish connection')
       ) {
-        // Brief pause to let the service worker spin up
-        await new Promise((r) => setTimeout(r, 250));
+        await new Promise((r) => setTimeout(r, 300));
         try {
+          if (!isContextValid()) return null;
           return await ext.runtime.sendMessage(message);
-        } catch (retryErr) {
-          console.warn('[FeedGuard] Message retry also failed:', retryErr);
+        } catch {
           return null;
         }
       }
-      console.warn('[FeedGuard] sendMessage error:', err);
       return null;
     }
   }
@@ -331,7 +338,9 @@
             return;
           }
         } catch (err) {
-          console.warn('[FeedGuard Twitter] Background AI error:', err);
+          if (!err?.message?.includes('Extension context invalidated')) {
+            console.warn('[FeedGuard Twitter] Background AI error:', err);
+          }
         }
       }
 
@@ -341,23 +350,67 @@
   }
 
   /**
-   * Sends a toxicBlocked increment to the background service worker.
+   * Sends a toxicBlocked increment to background, with direct storage fallback.
    */
-  function updateToxicStats() {
-    safeSendMessage({
-      type: 'UPDATE_STATS',
-      payload: { toxicBlocked: 1 },
-    });
+  async function updateToxicStats() {
+    let synced = false;
+    try {
+      const res = await safeSendMessage({
+        type: 'UPDATE_STATS',
+        payload: { toxicBlocked: 1 },
+      });
+      if (res && res.success) synced = true;
+    } catch (_) {}
+
+    if (!synced) {
+      try {
+        if (ext?.storage?.local) {
+          const today = new Date().toISOString().split('T')[0];
+          const { stats } = await ext.storage.local.get('stats');
+          const current = stats && stats.date === today ? stats : {
+            videosFiltered: 0,
+            timeSpent: 0,
+            toxicBlocked: 0,
+            spamBlocked: 0,
+            date: today,
+          };
+          current.toxicBlocked = (current.toxicBlocked || 0) + 1;
+          await ext.storage.local.set({ stats: current });
+        }
+      } catch (_) {}
+    }
   }
 
   /**
-   * Sends a spamBlocked increment to the background service worker.
+   * Sends a spamBlocked increment to background, with direct storage fallback.
    */
-  function updateSpamStats() {
-    safeSendMessage({
-      type: 'UPDATE_STATS',
-      payload: { spamBlocked: 1 },
-    });
+  async function updateSpamStats() {
+    let synced = false;
+    try {
+      const res = await safeSendMessage({
+        type: 'UPDATE_STATS',
+        payload: { spamBlocked: 1 },
+      });
+      if (res && res.success) synced = true;
+    } catch (_) {}
+
+    if (!synced) {
+      try {
+        if (ext?.storage?.local) {
+          const today = new Date().toISOString().split('T')[0];
+          const { stats } = await ext.storage.local.get('stats');
+          const current = stats && stats.date === today ? stats : {
+            videosFiltered: 0,
+            timeSpent: 0,
+            toxicBlocked: 0,
+            spamBlocked: 0,
+            date: today,
+          };
+          current.spamBlocked = (current.spamBlocked || 0) + 1;
+          await ext.storage.local.set({ stats: current });
+        }
+      } catch (_) {}
+    }
   }
 
   // Feed Processing 
@@ -384,6 +437,10 @@
   function startObserver() {
       const debouncedProcess = debounce(processTweets, 150);
     const observer = new MutationObserver((mutations) => {
+      if (!isContextValid()) {
+        observer.disconnect();
+        return;
+      }
       let hasNewNodes = false;
       for (const m of mutations) {
         if (m.addedNodes.length > 0) {
