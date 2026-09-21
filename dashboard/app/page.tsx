@@ -9,7 +9,8 @@ import RecentActivity from './components/RecentActivity';
  */
 async function fetchStats(userId: string) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://feedguard.onrender.com'}/api/user?userId=${userId}`, {
+    const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://feedguard.onrender.com';
+    const res = await fetch(`${apiUrl}/api/user?userId=${userId}`, {
       cache: 'no-store'
     });
     if (!res.ok) throw new Error('Backend response not OK');
