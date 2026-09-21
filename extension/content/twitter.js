@@ -20,19 +20,15 @@
   // Local Heuristic Scoring
 
   const TOXIC_KEYWORDS = [
-    'idiot', 'stupid', 'moron', 'pathetic', 'disgusting', 'trash', 'garbage',
+    'trash', 'garbage',
     'kill yourself', 'kys', 'die', 'worthless', 'retard', 'retarded',
-    'clown', 'brain dead', 'braindead', 'degenerate', 'stfu', 'shut up',
+    'clown', 'brain dead', 'braindead', 'degenerate',
     'scum', 'subhuman', 'piece of shit', 'cry harder', 'cope harder',
     'seethe', 'ratio +', 'kill urself', 'loser', 'asshole', 'bastard',
   ];
 
   const RAGEBAIT_KEYWORDS = [
-    'this is why',
-    'unpopular opinion',
-    'change my mind',
-    'fight me',
-    'they will never',
+    ,
     'can\'t believe',
     'outrageous',
     'shocking truth',
@@ -47,9 +43,6 @@
     'must see',
     'must read',
     'don\'t miss',
-    'wait until you see',
-    'this will blow your mind',
-    'this is why i',
     'no one is talking about',
     'the truth about',
     'you need to know',
