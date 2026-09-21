@@ -21,8 +21,10 @@
 
   const TOXIC_KEYWORDS = [
     'idiot', 'stupid', 'moron', 'pathetic', 'disgusting', 'trash', 'garbage',
-   'kill yourself', 'kys', 'die', 'worthless',
-  'clown', 'brain dead', 'degenerate',
+    'kill yourself', 'kys', 'die', 'worthless', 'retard', 'retarded',
+    'clown', 'brain dead', 'braindead', 'degenerate', 'stfu', 'shut up',
+    'scum', 'subhuman', 'piece of shit', 'cry harder', 'cope harder',
+    'seethe', 'ratio +', 'kill urself', 'loser', 'asshole', 'bastard',
   ];
 
   const RAGEBAIT_KEYWORDS = [
@@ -54,21 +56,33 @@
     'you need to hear',
     'here\'s why',
     'bet you didn\'t know',
+    'media is lying',
+    'they don\'t want you to see',
+    'proof that',
   ];
 
-  /*
-   * Returns true if the text is likely toxic/rage-bait.
+  /**
+   * Returns true if the text matches immediate toxic or rage-bait keywords.
    * @param {string} text
-   * @returns {{ likelyToxic: boolean, likelyRagebait: boolean }}
+   * @returns {{ likelyToxic: boolean, likelyRagebait: boolean, reason: string }}
    */
   function quickHeuristicCheck(text) {
-    if (!text) return { likelyToxic: false, likelyRagebait: false };
+    if (!text) return { likelyToxic: false, likelyRagebait: false, reason: '' };
     const lower = text.toLowerCase();
 
-    const likelyToxic = TOXIC_KEYWORDS.some((kw) => lower.includes(kw));
-    const likelyRagebait = RAGEBAIT_KEYWORDS.some((kw) => lower.includes(kw));
+    for (const kw of TOXIC_KEYWORDS) {
+      if (lower.includes(kw)) {
+        return { likelyToxic: true, likelyRagebait: false, reason: `Toxic keyword detected: "${kw}"` };
+      }
+    }
 
-    return { likelyToxic, likelyRagebait };
+    for (const kw of RAGEBAIT_KEYWORDS) {
+      if (lower.includes(kw)) {
+        return { likelyToxic: false, likelyRagebait: true, reason: `Rage-bait pattern detected: "${kw}"` };
+      }
+    }
+
+    return { likelyToxic: false, likelyRagebait: false, reason: '' };
   }
 
   //Badge Injection
@@ -176,11 +190,44 @@ async function checkToxic(text) {
     return null;
   }
 }
+  // Concurrency Limiter & Timeout helpers for ML/LLM requests
+  function withTimeout(promise, ms = 2500) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+    ]);
+  }
+
+  let activeRequests = 0;
+  const MAX_CONCURRENT = 3;
+  const requestQueue = [];
+
+  function enqueueAnalysis(fn) {
+    return new Promise((resolve) => {
+      requestQueue.push({ fn, resolve });
+      drainQueue();
+    });
+  }
+
+  function drainQueue() {
+    if (activeRequests >= MAX_CONCURRENT || requestQueue.length === 0) return;
+    const { fn, resolve } = requestQueue.shift();
+    activeRequests++;
+    fn()
+      .then(resolve)
+      .catch(() => resolve(null))
+      .finally(() => {
+        activeRequests--;
+        drainQueue();
+      });
+  }
+
   // Tweet Analysis
   /**
-   * Analyzes a single tweet element for toxic/rage-bait content.
-   * Uses ML checks (server-side) and escalates to LLM analysis if needed.
-   * Heuristic short-circuiting has been disabled to prefer ML-only.
+   * Analyzes a single tweet element using the Tri-Layer pipeline:
+   * Layer 1: Local Heuristics (0ms, 100% offline)
+   * Layer 2: Fast ML microservice check (queued)
+   * Layer 3: Groq LLM escalation for nuanced text (queued)
    * @param {Element} article - Tweet article DOM element
    */
   async function analyzeTweet(article) {
@@ -191,7 +238,7 @@ async function checkToxic(text) {
     if (!textEl) return;
 
     const text = textEl.textContent.trim();
-    if (!text || text.length < 20) return;
+    if (!text || text.length < 3) return;
 
     // Cache check
     if (analysisCache.has(text)) {
@@ -202,59 +249,90 @@ async function checkToxic(text) {
       return;
     }
 
-    // ML spam check (optional) — keep ML-based detector
-    const spamResult = settings.spamFilter ? await checkSpam(text) : null;
-    if (spamResult && spamResult.label === 'SPAM') {
-      const spamData = {
-        toxic: false,
-        ragebait: false,
+    // ─── Layer 1: Instant Local Heuristic Pre-Screen (0ms) ────────────────
+    const heuristic = quickHeuristicCheck(text);
+    if (heuristic.likelyToxic || heuristic.likelyRagebait) {
+      const heuristicData = {
+        toxic: heuristic.likelyToxic,
+        ragebait: heuristic.likelyRagebait,
         clickbait: false,
-        reason: `ML spam detector flagged this (${spamResult.confidence}% confident)`,
+        reason: heuristic.reason || 'Flagged by FeedGuard heuristic rules',
       };
-      analysisCache.set(text, spamData);
-      injectWarningBadge(article, spamData);
-      updateSpamStats();
+      analysisCache.set(text, heuristicData);
+      injectWarningBadge(article, heuristicData);
+      updateToxicStats();
       return;
     }
 
-    // ML toxic check before escalating to Groq
-    const toxicResult = await checkToxic(text);
-if (toxicResult && toxicResult.label === 'TOXIC') {
-  const toxicData = {
-    toxic: true,
-    ragebait: false,
-    clickbait: false,
-    reason: `ML toxicity model flagged this (${toxicResult.confidence}% confident)`,
-  };
-  analysisCache.set(text, toxicData);
-  injectWarningBadge(article, toxicData);
-  updateToxicStats();
-  return;
-}
-
-// Escalate to Groq LLM only if both ML models say clean
-
-    // Escalate to AI analysis via background worker
-    try {
-      const result = await ext.runtime.sendMessage({
-        type: 'ANALYZE_TWEET',
-        payload: { text },
-      });
-
-      if (!result || result.error) {
-        // If AI analysis unavailable, don't fallback to local heuristics — prefer ML-only behavior
+    // ─── Layer 2 & 3: Queued ML & AI Analysis (Non-blocking) ─────────────
+    enqueueAnalysis(async () => {
+      // Re-check cache in case processed while queued
+      if (analysisCache.has(text)) {
+        const cached = analysisCache.get(text);
+        if (cached.toxic || cached.ragebait) {
+          injectWarningBadge(article, cached);
+        }
         return;
       }
 
-      analysisCache.set(text, result);
-
-      if (result.toxic || result.ragebait) {
-        injectWarningBadge(article, result);
-        updateToxicStats();
+      // Layer 2A: ML spam check
+      if (settings.spamFilter) {
+        const spamResult = await withTimeout(checkSpam(text), 2000).catch(() => null);
+        if (spamResult && spamResult.label === 'SPAM' && (spamResult.confidence || 0) >= 65) {
+          const spamData = {
+            toxic: false,
+            ragebait: false,
+            clickbait: false,
+            reason: `ML spam detector flagged this (${spamResult.confidence}% confident)`,
+          };
+          analysisCache.set(text, spamData);
+          injectWarningBadge(article, spamData);
+          updateSpamStats();
+          return;
+        }
       }
-    } catch (err) {
-      console.warn('[FeedGuard Twitter] Analysis error:', err);
-    }
+
+      // Layer 2B: ML toxic check
+      const toxicResult = await withTimeout(checkToxic(text), 2000).catch(() => null);
+      if (toxicResult && toxicResult.label === 'TOXIC' && (toxicResult.confidence || 0) >= 65) {
+        const toxicData = {
+          toxic: true,
+          ragebait: false,
+          clickbait: false,
+          reason: `ML toxicity model flagged this (${toxicResult.confidence}% confident)`,
+        };
+        analysisCache.set(text, toxicData);
+        injectWarningBadge(article, toxicData);
+        updateToxicStats();
+        return;
+      }
+
+      // Layer 3: Escalate to Groq LLM for nuanced posts
+      const isProvocative = /[!?]{2,}/.test(text) || text.length > 80;
+      if (isProvocative) {
+        try {
+          const result = await withTimeout(
+            ext.runtime.sendMessage({
+              type: 'ANALYZE_TWEET',
+              payload: { text },
+            }),
+            3500
+          ).catch(() => null);
+
+          if (result && !result.error && (result.toxic || result.ragebait)) {
+            analysisCache.set(text, result);
+            injectWarningBadge(article, result);
+            updateToxicStats();
+            return;
+          }
+        } catch (err) {
+          console.warn('[FeedGuard Twitter] Background AI error:', err);
+        }
+      }
+
+      // Mark clean in cache so we don't re-analyze on re-scroll
+      analysisCache.set(text, { toxic: false, ragebait: false, clickbait: false, reason: '' });
+    });
   }
 
   /**

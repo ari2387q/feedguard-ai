@@ -5,6 +5,8 @@ export interface IDailyStat {
   date: string;
   timeSpent: number;
   filtered: number;
+  toxicBlocked: number;
+  spamBlocked: number;
 }
 
 /** Full User document shape (extends Mongoose Document for type safety) */
@@ -12,6 +14,7 @@ export interface IUser extends Document {
   userId: string;
   videosFiltered: number;
   toxicBlocked: number;
+  spamBlocked: number;
   timeSpent: number;
   dailyStats: IDailyStat[];
   createdAt: Date;
@@ -26,6 +29,10 @@ const DailyStatSchema = new Schema<IDailyStat>(
     timeSpent: { type: Number, default: 0 },
     /** Number of videos filtered on this date */
     filtered: { type: Number, default: 0 },
+    /** Number of toxic tweets blocked on this date */
+    toxicBlocked: { type: Number, default: 0 },
+    /** Number of spam tweets blocked on this date */
+    spamBlocked: { type: Number, default: 0 },
   },
   { _id: false }
 );
@@ -38,6 +45,8 @@ const UserSchema = new Schema<IUser>(
     videosFiltered: { type: Number, default: 0 },
     /** Total toxic tweets/posts blocked */
     toxicBlocked: { type: Number, default: 0 },
+    /** Total spam tweets/posts blocked */
+    spamBlocked: { type: Number, default: 0 },
     /** Cumulative time spent in seconds */
     timeSpent: { type: Number, default: 0 },
     /** Per-day breakdown of usage */

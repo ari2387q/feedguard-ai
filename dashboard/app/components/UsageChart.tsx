@@ -46,10 +46,14 @@ export default function UsageChart({ userId = 'demo' }: { userId?: string }) {
           .map((stat: any) => {
             const date = new Date(stat.date);
             const day = dayNames[date.getDay()];
+            const totalFiltered =
+              (stat.filtered || 0) +
+              (stat.toxicBlocked || 0) +
+              (stat.spamBlocked || 0);
             return {
               day,
-              timeSpent: Math.floor(stat.timeSpent / 60), // Convert seconds to minutes
-              filtered: stat.filtered,
+              timeSpent: Math.floor((stat.timeSpent || 0) / 60), // Convert seconds to minutes
+              filtered: totalFiltered,
             };
           });
         
@@ -76,7 +80,7 @@ export default function UsageChart({ userId = 'demo' }: { userId?: string }) {
     // Refresh every 30 seconds
     const interval = setInterval(fetchChartData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [userId]);
 
   if (!mounted) {
     return <div className="w-full h-full flex items-center justify-center text-slate-500">Loading chart...</div>;

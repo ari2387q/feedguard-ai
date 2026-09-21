@@ -137,15 +137,46 @@ const App: React.FC = () => {
         <Stats stats={stats} />
       </section>
 
+      {/* User ID Sync Helper */}
+      <section style={styles.userSection}>
+        <div style={styles.userIdRow}>
+          <span style={styles.userIdLabel}>User ID:</span>
+          <span style={styles.userIdVal} title={userId}>
+            {userId.length > 14 ? `${userId.slice(0, 12)}...` : userId}
+          </span>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(userId);
+              setSaved(true);
+              setTimeout(() => setSaved(false), 1500);
+            }}
+            style={styles.copyBtn}
+            title="Copy User ID for Dashboard"
+          >
+            📋 Copy
+          </button>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer style={styles.footer}>
+        <a
+          href={`http://localhost:3000/?userId=${userId}`}
+          target="_blank"
+          rel="noreferrer"
+          style={styles.dashboardLink}
+          title="Open Local Dashboard"
+        >
+          Local Dashboard →
+        </a>
         <a
           href={`https://feedguard-ai-dashboard.vercel.app/?userId=${userId}`}
           target="_blank"
           rel="noreferrer"
-          style={styles.dashboardLink}
+          style={styles.dashboardLinkMuted}
+          title="Open Cloud Dashboard"
         >
-          Open Dashboard →
+          Cloud →
         </a>
       </footer>
     </div>
@@ -227,16 +258,60 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: '0.8px',
     marginBottom: 6,
   },
+  userSection: {
+    padding: '4px 12px 8px 12px',
+  },
+  userIdRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid var(--border)',
+    borderRadius: 6,
+    padding: '4px 8px',
+    fontSize: 11,
+  },
+  userIdLabel: {
+    color: 'var(--muted)',
+    fontSize: 10,
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+  },
+  userIdVal: {
+    color: 'var(--text)',
+    fontFamily: 'monospace',
+    flex: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
+  copyBtn: {
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    color: 'var(--accent)',
+    borderRadius: 4,
+    padding: '2px 6px',
+    fontSize: 10,
+    cursor: 'pointer',
+    fontWeight: 600,
+  },
   footer: {
     padding: '8px 14px',
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderTop: '1px solid var(--border)',
   },
   dashboardLink: {
     color: 'var(--accent)',
     textDecoration: 'none',
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: 600,
+  },
+  dashboardLinkMuted: {
+    color: 'var(--muted)',
+    textDecoration: 'none',
+    fontSize: 11,
     fontWeight: 500,
   },
 };

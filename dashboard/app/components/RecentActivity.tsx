@@ -45,6 +45,28 @@ export default function RecentActivity({ userId = 'demo' }: { userId?: string })
         const isToday = date.toDateString() === new Date().toDateString();
         const timeAgo = getTimeAgo(date);
         
+        // Add activity for toxic posts blocked
+        if ((stat.toxicBlocked || 0) > 0) {
+          newActivities.push({
+            id: `toxic-${stat.date}`,
+            action: `Blocked ${stat.toxicBlocked} toxic/ragebait post${stat.toxicBlocked !== 1 ? 's' : ''}`,
+            time: timeAgo,
+            icon: '☣️',
+            timestamp: date.getTime() + 2,
+          });
+        }
+
+        // Add activity for spam posts blocked
+        if ((stat.spamBlocked || 0) > 0) {
+          newActivities.push({
+            id: `spam-${stat.date}`,
+            action: `Filtered ${stat.spamBlocked} spam tweet${stat.spamBlocked !== 1 ? 's' : ''}`,
+            time: timeAgo,
+            icon: '🚫',
+            timestamp: date.getTime() + 1,
+          });
+        }
+
         // Add activity for filtered videos
         if (stat.filtered > 0) {
           const prevFiltered = index > 0 ? sorted[index - 1].filtered : 0;

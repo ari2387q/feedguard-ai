@@ -20,12 +20,19 @@ async function fetchStats(userId: string) {
     const todayStats = data?.user?.dailyStats?.find((stat: any) => stat.date === today) ?? {
       timeSpent: 0,
       filtered: 0,
+      toxicBlocked: 0,
+      spamBlocked: 0,
     };
+
+    const todayFiltered = (todayStats.filtered || 0) + (todayStats.spamBlocked || 0);
+    const toxicCount = (data?.user?.toxicBlocked ?? 0) > 0 
+      ? data.user.toxicBlocked 
+      : (todayStats.toxicBlocked || 0);
     
     return {
       timeSaved: formatDuration(todayStats.timeSpent),
-      videosFiltered: todayStats.filtered,
-      toxicBlocked: data?.user?.toxicBlocked ?? 0,
+      videosFiltered: todayFiltered,
+      toxicBlocked: toxicCount,
       dailyStats: data?.user?.dailyStats ?? [],
     };
   } catch (err) {

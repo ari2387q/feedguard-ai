@@ -4,12 +4,15 @@ export interface DailyStat {
   date: string;
   timeSpent: number;
   filtered: number;
+  toxicBlocked: number;
+  spamBlocked: number;
 }
 
 export interface UpsertPayload {
   userId: string;
   videosFiltered?: number;
   toxicBlocked?: number;
+  spamBlocked?: number;
   timeSpent?: number;
 }
 
@@ -29,6 +32,7 @@ export const userService = {
         userId,
         videosFiltered = 0,
         toxicBlocked = 0,
+        spamBlocked = 0,
         timeSpent = 0,
       } = payload;
 
@@ -41,15 +45,23 @@ export const userService = {
           userId,
           videosFiltered,
           toxicBlocked,
+          spamBlocked,
           timeSpent,
           dailyStats: [
-            { date: today, timeSpent, filtered: videosFiltered },
+            {
+              date: today,
+              timeSpent,
+              filtered: videosFiltered,
+              toxicBlocked,
+              spamBlocked,
+            },
           ],
         });
       } else {
         // Update existing user
         user.videosFiltered += videosFiltered;
         user.toxicBlocked += toxicBlocked;
+        user.spamBlocked = (user.spamBlocked || 0) + spamBlocked;
         user.timeSpent += timeSpent;
 
         // Update or create today's daily stat
@@ -59,11 +71,15 @@ export const userService = {
         if (todayEntry) {
           todayEntry.timeSpent += timeSpent;
           todayEntry.filtered += videosFiltered;
+          todayEntry.toxicBlocked = (todayEntry.toxicBlocked || 0) + toxicBlocked;
+          todayEntry.spamBlocked = (todayEntry.spamBlocked || 0) + spamBlocked;
         } else {
           user.dailyStats.push({
             date: today,
             timeSpent,
             filtered: videosFiltered,
+            toxicBlocked,
+            spamBlocked,
           });
         }
       }

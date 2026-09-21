@@ -7,14 +7,23 @@
 /* global browser */
 const ext = typeof browser !== 'undefined' ? browser : chrome; // eslint-disable-line no-undef
 
-const BACKEND_URL = 'https://feedguard.onrender.com';
+const DEFAULT_BACKEND_URL = 'https://feedguard.onrender.com';
 
 /** Default settings applied on first install */
 const DEFAULT_SETTINGS = {
   toxicFilter: true,
   spamFilter: true,
+  backendUrl: DEFAULT_BACKEND_URL,
 };
 
+async function getBackendUrl() {
+  try {
+    const { settings } = await ext.storage.sync.get('settings');
+    return (settings && settings.backendUrl) || DEFAULT_BACKEND_URL;
+  } catch {
+    return DEFAULT_BACKEND_URL;
+  }
+}
 
 /** Default stats object for daily tracking */
 const DEFAULT_STATS = {
@@ -25,7 +34,7 @@ const DEFAULT_STATS = {
   date: new Date().toISOString().split('T')[0],
 };
 
-// â”€â”€â”€ Initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Initialization ──────────────────────────────────────────────────────────
 
 /**
  * Runs on extension install/update.
@@ -34,7 +43,7 @@ const DEFAULT_STATS = {
 ext.runtime.onInstalled.addListener(async () => {
   const { userId } = await ext.storage.local.get('userId');
   if (!userId) {
-      await ext.storage.local.set({ userId: crypto.randomUUID() });
+    await ext.storage.local.set({ userId: crypto.randomUUID() });
   }
   const existing = await ext.storage.sync.get('settings');
   if (!existing.settings) {
@@ -47,12 +56,12 @@ ext.runtime.onInstalled.addListener(async () => {
     await ext.storage.local.set({ stats: DEFAULT_STATS });
     console.log('[FeedGuard] Default stats initialized.');
   }
-
 });
 
-// â”€â”€â”€ Alarm for daily stats reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Alarms for daily stats reset & background sync retry ──────────────────
 
 ext.alarms.create('dailyReset', { periodInMinutes: 60 });
+ext.alarms.create('statsSyncRetry', { periodInMinutes: 5 });
 
 ext.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'dailyReset') {
@@ -64,6 +73,8 @@ ext.alarms.onAlarm.addListener(async (alarm) => {
       });
       console.log('[FeedGuard] Daily stats reset for:', today);
     }
+  } else if (alarm.name === 'statsSyncRetry') {
+    await syncLocalStatsToBackend();
   }
 });
 
@@ -152,6 +163,7 @@ async function handleUpdateStats(payload, sendResponse) {
       userId: await getUserId(),
       videosFiltered: payload.videosFiltered || 0,
       toxicBlocked: payload.toxicBlocked || 0,
+      spamBlocked: payload.spamBlocked || 0,
       timeSpent: payload.timeSpent || 0,
     });
 
@@ -182,7 +194,8 @@ async function handleGetStats(sendResponse) {
 
 async function postStatsToBackend(payload) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/user`, {
+    const backendUrl = await getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/user`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -205,15 +218,16 @@ async function syncLocalStatsToBackend() {
     const { stats, syncedStats } = await ext.storage.local.get(['stats', 'syncedStats']);
     if (!stats) return;
 
-    const last = syncedStats || { videosFiltered: 0, toxicBlocked: 0, timeSpent: 0, date: stats.date };
+    const last = syncedStats || { videosFiltered: 0, toxicBlocked: 0, spamBlocked: 0, timeSpent: 0, date: stats.date };
     const delta = {
       userId: await getUserId(),
-      videosFiltered: Math.max(0, stats.videosFiltered - (last.videosFiltered || 0)),
-      toxicBlocked: Math.max(0, stats.toxicBlocked - (last.toxicBlocked || 0)),
-      timeSpent: Math.max(0, stats.timeSpent - (last.timeSpent || 0)),
+      videosFiltered: Math.max(0, (stats.videosFiltered || 0) - (last.videosFiltered || 0)),
+      toxicBlocked: Math.max(0, (stats.toxicBlocked || 0) - (last.toxicBlocked || 0)),
+      spamBlocked: Math.max(0, (stats.spamBlocked || 0) - (last.spamBlocked || 0)),
+      timeSpent: Math.max(0, (stats.timeSpent || 0) - (last.timeSpent || 0)),
     };
 
-    const hasDelta = delta.videosFiltered || delta.toxicBlocked || delta.timeSpent;
+    const hasDelta = delta.videosFiltered || delta.toxicBlocked || delta.spamBlocked || delta.timeSpent;
     if (!hasDelta) return;
 
     const success = await postStatsToBackend(delta);
@@ -232,7 +246,8 @@ async function syncLocalStatsToBackend() {
  */
 async function handleSummarize(payload, sendResponse) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/summarize`, {
+    const backendUrl = await getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/summarize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -249,23 +264,27 @@ async function handleSummarize(payload, sendResponse) {
     sendResponse({ error: err.message });
   }
 }
+
 async function handleCheckSpam(payload, sendResponse) {
-    try {
-        const response = await fetch(`${BACKEND_URL}/api/spam`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: payload.text }),
-        });
-        const data = await response.json();
-        sendResponse(data);
-    } catch (err) {
-        console.error('[FeedGuard] CHECK_SPAM error:', err);
-        sendResponse(null);
-    }
+  try {
+    const backendUrl = await getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/spam`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: payload.text }),
+    });
+    const data = await response.json();
+    sendResponse(data);
+  } catch (err) {
+    console.error('[FeedGuard] CHECK_SPAM error:', err);
+    sendResponse(null);
+  }
 }
+
 async function handleCheckToxic(payload, sendResponse) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/toxic`, {
+    const backendUrl = await getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/toxic`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: payload.text }),
@@ -277,6 +296,7 @@ async function handleCheckToxic(payload, sendResponse) {
     sendResponse(null);
   }
 }
+
 /**
  * Proxies a tweet analysis request to the backend /api/analyze endpoint.
  * @param {{ text: string }} payload
@@ -284,7 +304,8 @@ async function handleCheckToxic(payload, sendResponse) {
  */
 async function handleAnalyzeTweet(payload, sendResponse) {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/analyze`, {
+    const backendUrl = await getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

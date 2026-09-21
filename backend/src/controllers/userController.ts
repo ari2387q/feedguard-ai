@@ -5,6 +5,7 @@ export interface UserStatsBody {
   userId: string;
   videosFiltered?: number;
   toxicBlocked?: number;
+  spamBlocked?: number;
   timeSpent?: number;
 }
 
@@ -19,7 +20,13 @@ export const userController = {
     res: Response
   ): Promise<void> => {
     try {
-      const { userId, videosFiltered = 0, toxicBlocked = 0, timeSpent = 0 } =req.body;
+      const {
+        userId,
+        videosFiltered = 0,
+        toxicBlocked = 0,
+        spamBlocked = 0,
+        timeSpent = 0,
+      } = req.body;
 
       // Validation
       if (!userId || typeof userId !== 'string') {
@@ -34,6 +41,7 @@ export const userController = {
         userId,
         videosFiltered,
         toxicBlocked,
+        spamBlocked,
         timeSpent,
       });
 
