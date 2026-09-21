@@ -62,6 +62,8 @@ ext.runtime.onInstalled.addListener(async () => {
 
 ext.alarms.create('dailyReset', { periodInMinutes: 60 });
 ext.alarms.create('statsSyncRetry', { periodInMinutes: 5 });
+// Ping the backend every 12 min to prevent Render free-tier cold starts (sleeps after 15 min)
+ext.alarms.create('backendKeepAlive', { periodInMinutes: 12 });
 
 ext.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'dailyReset') {
@@ -75,6 +77,17 @@ ext.alarms.onAlarm.addListener(async (alarm) => {
     }
   } else if (alarm.name === 'statsSyncRetry') {
     await syncLocalStatsToBackend();
+  } else if (alarm.name === 'backendKeepAlive') {
+    // Fire-and-forget warm-up ping to keep Render backend alive
+    try {
+      const backendUrl = await getBackendUrl();
+      const res = await fetch(`${backendUrl}/api/health`, { method: 'GET' });
+      if (res.ok) {
+        console.log('[FeedGuard] Backend keep-alive ping OK');
+      }
+    } catch (err) {
+      console.warn('[FeedGuard] Backend keep-alive ping failed:', err.message);
+    }
   }
 });
 

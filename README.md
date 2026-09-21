@@ -53,7 +53,7 @@ FeedGuard AI v2 is a next-generation browser extension and full-stack ecosystem 
 
 Modern social media platforms are engineered to maximise engagement at any cost — outrage-inducing posts and infinite scroll designed to trap you. **FeedGuard AI v2** fights back.
 
-It is a comprehensive **Chrome browser extension** currently focused on **X (Twitter)**, operating silently in the background. Every tweet is analysed before it reaches your eyes. Instead of relying on a single slow or expensive technique, FeedGuard v2 uses a highly optimised **Tri-Layer Intelligence Stack**, combining rapid local processing with advanced machine learning and state-of-the-art LLMs.
+It is a comprehensive **browser extension** (Chrome & Firefox/AMO) currently focused on **X (Twitter)**, operating silently in the background. Every tweet is analysed before it reaches your eyes. Instead of relying on a single slow or expensive technique, FeedGuard v2 uses a highly optimised **Tri-Layer Intelligence Stack**, combining rapid local processing with advanced machine learning and state-of-the-art LLMs.
 
 Everything is **individually toggleable**, **privacy-respecting** (text is only sent to AI when strictly necessary), and backed by a **live Next.js analytics dashboard** to monitor exactly how much noise your feed has been producing.
 
@@ -182,10 +182,11 @@ While v2 is currently heavily optimized for X (Twitter), we plan to introduce po
 | Domain | Technologies |
 |---|---|
 | **Extension** | Manifest V3, React 18, TypeScript, Vite, Vanilla JS (Content Scripts) |
-| **Backend** | Node.js, Express.js 4, Mongoose 8, Groq SDK |
-| **ML Service** | Python 3.9+, FastAPI, scikit-learn, pandas, joblib |
+| **Backend** | Node.js 20, Express.js 4, Mongoose 8, Groq SDK |
+| **ML Service** | Python 3.12+, FastAPI, scikit-learn, pandas, joblib |
 | **Dashboard** | Next.js 14 (App Router), Tailwind CSS 3, Recharts 2 |
-| **Database** | MongoDB Atlas |
+| **Database** | MongoDB Atlas (cloud) / MongoDB 7 (Docker) |
+| **DevOps** | Docker, Docker Compose, multi-stage builds |
 
 ---
 
@@ -193,11 +194,12 @@ While v2 is currently heavily optimized for X (Twitter), we plan to introduce po
 
 ```text
 feedguard-ai/
-├── extension/          ← Chrome Extension (Compiled manifest & scripts)
+├── extension/          ← Browser Extension (Manifest V3 — Chrome & Firefox)
 ├── popup-src/          ← React source for the extension popup
 ├── backend/            ← Node.js + Express API (Mongoose & Groq integrations)
 ├── dashboard/          ← Next.js 14 analytics dashboard
 ├── ml-service/         ← Python FastAPI ML Classifier (Model training & API)
+├── docker-compose.yml  ← Full-stack Docker orchestration
 └── README.md
 ```
 
@@ -205,9 +207,27 @@ feedguard-ai/
 
 ## 🚀 Getting Started
 
+### Option A — Docker (Recommended)
+
+The fastest way to run the entire stack:
+
+```bash
+docker compose up -d
+```
+
+This spins up **4 services**: ML Service (`:8000`), Backend (`:3001`), Dashboard (`:3000`), and MongoDB (`:27017`).
+
+| Service | URL |
+|---|---|
+| Dashboard | http://localhost:3000 |
+| Backend API | http://localhost:3001/api/health |
+| ML Service | http://localhost:8000 |
+
+### Option B — Manual
+
 You need **4 things running** simultaneously for the full local experience:
 
-### Step 1 — Python ML Service
+#### Step 1 — Python ML Service
 ```bash
 cd ml-service
 pip install -r requirements.txt
@@ -215,7 +235,7 @@ python train.py # Creates spam_model.pkl and vectorizer.pkl
 uvicorn main:app --reload --port 8000
 ```
 
-### Step 2 — Node.js Backend
+#### Step 2 — Node.js Backend
 ```bash
 cd backend
 cp .env.example .env
@@ -223,20 +243,23 @@ npm install
 npm run dev
 ```
 
-### Step 3 — Next.js Dashboard
+#### Step 3 — Next.js Dashboard
 ```bash
 cd dashboard
 npm install
 npm run dev
 ```
 
-### Step 4 — Chrome Extension
+### Browser Extension (Chrome & Firefox)
 ```bash
 cd popup-src
 npm install
 npm run build
 ```
-Load the `extension/` folder in Chrome via `chrome://extensions/` with **Developer mode** enabled.
+
+**Chrome:** Load the `extension/` folder in `chrome://extensions/` with **Developer mode** enabled.
+
+**Firefox:** Load as temporary add-on via `about:debugging` → "Load Temporary Add-on" → select `extension/manifest.json`. The extension is also published on [AMO](https://addons.mozilla.org/).
 
 ---
 
@@ -272,11 +295,11 @@ PORT=3001
 ## 🔄 Data Flow — End to End
 
 1. **DOM Mutation:** `content.js` identifies a new tweet card.
-2. **Local Processing:** Immediate keyword and heuristic evaluation.
-3. **Escalation:** If flagged, `background.js` proxies the request to the Node.js API.
+2. **Local Processing:** Immediate keyword and heuristic evaluation (zero-latency Layer 1).
+3. **Escalation:** If borderline, `background.js` proxies the request to the Node.js API (with service-worker resilient messaging).
 4. **AI Inference:** The API dispatches to the ML Service or Groq LLM.
 5. **UI Update:** Warning badges and blurs are dynamically injected back into the DOM.
-6. **Telemetry:** Stats (`toxicBlocked`) are asynchronously synced to MongoDB, instantly reflecting in the Next.js dashboard.
+6. **Telemetry:** Stats (`toxicBlocked`, `spamBlocked`, `timeSpent`) are asynchronously synced to MongoDB, instantly reflecting in the Next.js dashboard.
 
 ---
 

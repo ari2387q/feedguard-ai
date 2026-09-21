@@ -164,32 +164,44 @@
       if (tweetContent) tweetContent.style.filter = 'none';
     });
   }
-  // NEW - goes through background.js
-async function checkSpam(text) {
+  /**
+   * Resilient wrapper around ext.runtime.sendMessage.
+   * MV3 service workers can go inactive; the first call wakes them but may
+   * throw "Could not establish connection". We catch that and retry once.
+   */
+  async function safeSendMessage(message) {
     try {
-        const result = await ext.runtime.sendMessage({
-            type: 'CHECK_SPAM',
-            payload: { text }
-        });
-        return result;
+      return await ext.runtime.sendMessage(message);
     } catch (err) {
-        console.warn('[FeedGuard] Spam check failed:', err);
-        return null;
+      // "Receiving end does not exist" means the service worker was asleep.
+      // The failed call itself wakes it, so a single retry usually succeeds.
+      if (
+        err?.message?.includes('Receiving end does not exist') ||
+        err?.message?.includes('Could not establish connection')
+      ) {
+        // Brief pause to let the service worker spin up
+        await new Promise((r) => setTimeout(r, 250));
+        try {
+          return await ext.runtime.sendMessage(message);
+        } catch (retryErr) {
+          console.warn('[FeedGuard] Message retry also failed:', retryErr);
+          return null;
+        }
+      }
+      console.warn('[FeedGuard] sendMessage error:', err);
+      return null;
     }
-}
-//To check the toxicity
-async function checkToxic(text) {
-  try {
-    const result = await ext.runtime.sendMessage({
-      type: 'CHECK_TOXIC',
-      payload: { text }
-    });
-    return result;
-  } catch (err) {
-    console.warn('[FeedGuard] Toxic check failed:', err);
-    return null;
   }
-}
+
+  // NEW - goes through background.js
+  async function checkSpam(text) {
+    return safeSendMessage({ type: 'CHECK_SPAM', payload: { text } });
+  }
+
+  // To check the toxicity
+  async function checkToxic(text) {
+    return safeSendMessage({ type: 'CHECK_TOXIC', payload: { text } });
+  }
   // Concurrency Limiter & Timeout helpers for ML/LLM requests
   function withTimeout(promise, ms = 2500) {
     return Promise.race([
@@ -312,7 +324,7 @@ async function checkToxic(text) {
       if (isProvocative) {
         try {
           const result = await withTimeout(
-            ext.runtime.sendMessage({
+            safeSendMessage({
               type: 'ANALYZE_TWEET',
               payload: { text },
             }),
@@ -339,7 +351,7 @@ async function checkToxic(text) {
    * Sends a toxicBlocked increment to the background service worker.
    */
   function updateToxicStats() {
-    ext.runtime.sendMessage({
+    safeSendMessage({
       type: 'UPDATE_STATS',
       payload: { toxicBlocked: 1 },
     });
@@ -349,7 +361,7 @@ async function checkToxic(text) {
    * Sends a spamBlocked increment to the background service worker.
    */
   function updateSpamStats() {
-    ext.runtime.sendMessage({
+    safeSendMessage({
       type: 'UPDATE_STATS',
       payload: { spamBlocked: 1 },
     });
@@ -402,7 +414,7 @@ async function checkToxic(text) {
    */
   async function init() {
     try {
-      const response = await ext.runtime.sendMessage({ type: 'GET_SETTINGS' });
+      const response = await safeSendMessage({ type: 'GET_SETTINGS' });
       if (response && response.settings) {
         settings = response.settings;
       }
