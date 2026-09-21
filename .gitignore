@@ -31,3 +31,4 @@ Thumbs.db
 *.sln
 *.sw?
 *.zip
+ml-service/venv/
