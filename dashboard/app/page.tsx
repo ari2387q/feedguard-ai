@@ -1,5 +1,5 @@
 import React from 'react';
-import StatCard from './components/StatCard';
+import LiveStats from './components/LiveStats';
 import UsageChart from './components/UsageChart';
 import RecentActivity from './components/RecentActivity';
 
@@ -68,30 +68,13 @@ export default async function Home({ searchParams }: { searchParams: { userId?: 
         </p>
       </header>
 
-      {/* Top Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          title="Time Saved (Est)"
-          value={stats.timeSaved}
-          icon="⏱️"
-          trend="+12% this week"
-          trendPositive={true}
-        />
-        <StatCard
-          title="Tweets Filtered (ML)"
-          value={stats.videosFiltered.toString()}
-          icon="🐦"
-          
-          trendPositive={true}
-        />
-        <StatCard
-          title="Toxic Posts Blocked"
-          value={stats.toxicBlocked.toString()}
-          icon="☣️"
-          
-          trendPositive={false}
-        />
-      </div>
+      {/* Top Stats Row — live polling every 20s */}
+      <LiveStats
+        userId={userId}
+        initialTimeSaved={stats.timeSaved}
+        initialVideosFiltered={stats.videosFiltered}
+        initialToxicBlocked={stats.toxicBlocked}
+      />
 
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
