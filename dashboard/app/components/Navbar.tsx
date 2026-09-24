@@ -21,6 +21,7 @@ export default function Navbar() {
       if (stored) {
         setCurrentId(stored);
         router.replace(`/?userId=${stored}`);
+        router.refresh();
       } else {
         setCurrentId('demo');
       }
@@ -35,6 +36,7 @@ export default function Navbar() {
       setCurrentId(trimmed);
       setIsEditing(false);
       router.push(`/?userId=${trimmed}`);
+      router.refresh();
     }
   };
 

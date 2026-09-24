@@ -124,6 +124,11 @@ ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'CHECK_TOXIC':
       handleCheckToxic(message.payload, sendResponse);
       break;
+    case 'SYNC_STATS':
+      syncLocalStatsToBackend()
+        .then(() => sendResponse({ success: true }))
+        .catch(() => sendResponse({ success: false }));
+      break;
 
 
     default:

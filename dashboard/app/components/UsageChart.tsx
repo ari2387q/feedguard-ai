@@ -39,35 +39,34 @@ export default function UsageChart({ userId = 'demo' }: { userId?: string }) {
         const result = await response.json();
         const dailyStats = result.user?.dailyStats || [];
         
-        // Convert dailyStats to chart format with day names
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const chartData = dailyStats
-          .slice(-7) // Last 7 days
-          .map((stat: any) => {
-            const date = new Date(stat.date);
-            const day = dayNames[date.getDay()];
-            const totalFiltered =
-              (stat.filtered || 0) +
-              (stat.toxicBlocked || 0) +
-              (stat.spamBlocked || 0);
-            return {
-              day,
-              timeSpent: Math.floor((stat.timeSpent || 0) / 60), // Convert seconds to minutes
-              filtered: totalFiltered,
-            };
-          });
+        // Map daily stats by date string
+        const statsMap = new Map<string, any>();
+        dailyStats.forEach((stat: any) => {
+          if (stat.date) statsMap.set(stat.date, stat);
+        });
         
-        // Pad with empty days if less than 7
-        while (chartData.length < 7) {
-          const lastDate = chartData.length > 0 
-            ? new Date(chartData[chartData.length - 1].day)
-            : new Date();
-          const newDate = new Date(lastDate.getTime() - (7 - chartData.length) * 24 * 60 * 60 * 1000);
-          const dayName = dayNames[newDate.getDay()];
-          chartData.unshift({ day: dayName, timeSpent: 0, filtered: 0 });
+        // Generate last 7 calendar days up to today
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const chartData: ChartData[] = [];
+        const now = new Date();
+        
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          const dateStr = d.toISOString().split('T')[0];
+          const stat = statsMap.get(dateStr);
+          const totalFiltered = stat
+            ? (stat.filtered || 0) + (stat.toxicBlocked || 0) + (stat.spamBlocked || 0)
+            : 0;
+          const timeMins = stat ? Math.floor((stat.timeSpent || 0) / 60) : 0;
+          
+          chartData.push({
+            day: dayNames[d.getDay()],
+            timeSpent: timeMins,
+            filtered: totalFiltered,
+          });
         }
         
-        setData(chartData.length > 0 ? chartData : getDefaultChartData());
+        setData(chartData);
       } catch (err) {
         console.error('[UsageChart] Failed to fetch data:', err);
         setData(getDefaultChartData());

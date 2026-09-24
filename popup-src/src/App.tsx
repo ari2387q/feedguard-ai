@@ -58,6 +58,10 @@ const App: React.FC = () => {
           await chrome.storage.local.set({ userId: currentUserId });
         }
         setUserId(currentUserId);
+        // Immediately sync local stats to backend so dashboard is up-to-date
+        chrome.runtime.sendMessage({ type: 'SYNC_STATS' }, () => {
+          if (chrome.runtime.lastError) { /* ignore */ }
+        });
       } catch (err) {
         console.error('[FeedGuard Popup] Failed to load storage:', err);
       } finally {
@@ -73,6 +77,9 @@ const App: React.FC = () => {
       if (areaName === 'local') {
         if (changes.stats?.newValue) {
           setStats(changes.stats.newValue as DailyStats);
+          chrome.runtime.sendMessage({ type: 'SYNC_STATS' }, () => {
+            if (chrome.runtime.lastError) { /* ignore */ }
+          });
         }
         if (changes.userId?.newValue) {
           setUserId(changes.userId.newValue as string);

@@ -7,6 +7,8 @@ import RecentActivity from './components/RecentActivity';
  * Fetches today’s aggregated stats from the backend.
  * Falls back to dummy data if the backend is not running or fails.
  */
+export const dynamic = 'force-dynamic';
+
 async function fetchStats(userId: string) {
   try {
     const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://feedguard.onrender.com';
@@ -16,29 +18,32 @@ async function fetchStats(userId: string) {
     if (!res.ok) throw new Error('Backend response not OK');
     const data = await res.json();
     
-    // Get today's stats from dailyStats array
+    // Check today's stats from dailyStats array
     const today = new Date().toISOString().split('T')[0];
-    const todayStats = data?.user?.dailyStats?.find((stat: any) => stat.date === today) ?? {
-      timeSpent: 0,
-      filtered: 0,
-      toxicBlocked: 0,
-      spamBlocked: 0,
-    };
+    const todayStats = data?.user?.dailyStats?.find((stat: any) => stat.date === today);
 
-    const todayFiltered = (todayStats.filtered || 0) + (todayStats.spamBlocked || 0);
-    const toxicCount = (data?.user?.toxicBlocked ?? 0) > 0 
-      ? data.user.toxicBlocked 
-      : (todayStats.toxicBlocked || 0);
+    const allTimeSpam = data?.user?.spamBlocked || 0;
+    const allTimeFiltered = data?.user?.videosFiltered || 0;
+    const allTimeToxic = data?.user?.toxicBlocked || 0;
+    const allTimeTimeSpent = data?.user?.timeSpent || 0;
+
+    const todayFiltered = (todayStats?.filtered || 0) + (todayStats?.spamBlocked || 0);
+    const todayToxic = todayStats?.toxicBlocked || 0;
+    const todayTime = todayStats?.timeSpent || 0;
+
+    // Show today's count if available, otherwise display all-time total
+    const displayFiltered = todayFiltered > 0 ? todayFiltered : (allTimeSpam + allTimeFiltered);
+    const displayToxic = todayToxic > 0 ? todayToxic : allTimeToxic;
+    const displayTime = todayTime > 0 ? todayTime : allTimeTimeSpent;
     
     return {
-      timeSaved: formatDuration(todayStats.timeSpent),
-      videosFiltered: todayFiltered,
-      toxicBlocked: toxicCount,
+      timeSaved: formatDuration(displayTime),
+      videosFiltered: displayFiltered,
+      toxicBlocked: displayToxic,
       dailyStats: data?.user?.dailyStats ?? [],
     };
   } catch (err) {
     console.error('[Dashboard] Failed to fetch stats:', err);
-    // Return empty data if backend isn't available
     return {
       timeSaved: '0m',
       videosFiltered: 0,
